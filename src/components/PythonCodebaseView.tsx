@@ -42,7 +42,7 @@ export const PythonCodebaseView: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h2 className="text-lg font-bold text-slate-900">
-              Complete Python + MongoDB Atlas + Gemini 4 Argon Codebase (caregiver/)
+              Python reference implementation — displayed source, not the running app backend
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               All {PYTHON_PROJECT_FILES.length} production-hardened Python files with P0/P1/P2 audit fixes applied (Typed ProposedAction, [E1..En] aliases, atomic supersession, 3-tier policy gate, TOCTOU check)

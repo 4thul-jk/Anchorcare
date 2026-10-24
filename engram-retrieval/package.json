@@ -1,0 +1,28 @@
+{
+  "name": "engram-retrieval",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.18"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "worker": "node src/worker.js",
+    "test": "node --test",
+    "verify:core": "node scripts/verify-core.js",
+    "stream:prepare": "node scripts/stream-prepare.js",
+    "stream:verify": "node scripts/stream-verify.js",
+    "atlas:indexes": "node scripts/indexes.js",
+    "atlas:check": "node scripts/atlas-check.js",
+    "demo:seed": "node scripts/seed.js",
+    "demo:contract": "node scripts/contract-demo.js",
+    "memory:nightly": "node scripts/nightly.js",
+    "demo:memory": "node scripts/memory-demo.js",
+    "project:history": "node scripts/history.js"
+  },
+  "dependencies": {
+    "@google/genai": "^2.3.0",
+    "mongodb": "^6.20.0"
+  }
+}

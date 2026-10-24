@@ -21,10 +21,15 @@ import { CompanionView } from './components/CompanionView';
 import { MemoryLedgerView } from './components/MemoryLedgerView';
 import { PolicyActionsView } from './components/PolicyActionsView';
 import { PythonCodebaseView } from './components/PythonCodebaseView';
+import { EngramMemoryView } from './components/EngramMemoryView';
+import { AtlasLedgerView } from './components/AtlasLedgerView';
+import { AtlasCompanionView } from './components/AtlasCompanionView';
 
 const STORAGE_KEY = 'anchorcare_state_v1';
 
 export default function App() {
+  const [showMemoryBackend, setShowMemoryBackend] = useState(false);
+  const [memoryAccessKey, setMemoryAccessKey] = useState('');
   const [state, setState] = useState<CaregiverState>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -320,7 +325,7 @@ export default function App() {
             onClick={handleResetDemo}
             className="px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors whitespace-nowrap shrink-0"
           >
-            Reset Demo Data
+            Reset browser samples
           </button>
         </div>
       </header>
@@ -335,7 +340,7 @@ export default function App() {
             <span aria-hidden="true">·</span>
             <span className="font-mono tabular-nums">{state.person.id}</span>
             <span aria-hidden="true">·</span>
-            <span>Active Memories: <strong className="font-mono tabular-nums text-slate-900">{activeEvents.length}</strong></span>
+            <span>Sample Memories: <strong className="font-mono tabular-nums text-slate-900">{activeEvents.length}</strong></span>
             <span aria-hidden="true">·</span>
             <span>Conflicts Flagged: <strong className="font-mono tabular-nums text-slate-900">{conflictCount}</strong></span>
             <span aria-hidden="true">·</span>
@@ -345,7 +350,7 @@ export default function App() {
           {/* Interactive Role Switcher (P0 Security Fix) */}
           <div className="flex items-center gap-2 shrink-0">
             <span className="text-xs font-medium text-slate-500">
-              Active Actor Role:
+              Browser sample role:
             </span>
             <div
               role="group"
@@ -381,7 +386,12 @@ export default function App() {
 
       {/* Main Content Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
+        <button type="button" className="mb-6 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium" onClick={() => setShowMemoryBackend(v => !v)}>{showMemoryBackend ? 'Return to main app' : 'Caregiver memory tools'}</button>
+        {showMemoryBackend ? <EngramMemoryView accessKey={memoryAccessKey} onAccessKeyChange={setMemoryAccessKey} /> : <>
         {activeTab === 'companion' && (
+          <>
+          <AtlasCompanionView accessKey={memoryAccessKey} onAccessKeyChange={setMemoryAccessKey} />
+          <details className="mt-8 rounded-xl border p-4"><summary className="cursor-pointer text-sm">Original browser companion demo — separate from Atlas</summary>
           <CompanionView
             state={state}
             watchdogAlerts={watchdogAlerts}
@@ -396,14 +406,21 @@ export default function App() {
             }
             onNavigateTab={setActiveTab}
           />
+          </details>
+          </>
         )}
 
         {activeTab === 'memory' && (
+          <>
+          <AtlasLedgerView accessKey={memoryAccessKey} onAccessKeyChange={setMemoryAccessKey} />
+          <details className="mt-8 rounded-xl border p-4"><summary className="cursor-pointer text-sm">Original browser sample ledger — separate from Atlas</summary>
           <MemoryLedgerView
             state={state}
             onRecordEvent={handleRecordEvent}
             onCorrectOrRetract={handleCorrectOrRetract}
           />
+          </details>
+          </>
         )}
 
         {activeTab === 'policy' && (
@@ -417,6 +434,7 @@ export default function App() {
         )}
 
         {activeTab === 'codebase' && <PythonCodebaseView />}
+        </>}
       </main>
 
       {/* Quiet Footer */}
@@ -426,7 +444,7 @@ export default function App() {
             AnchorCare — Hybrid Evidence-Grounded Memory Assistant & Policy Engine Prototype
           </span>
           <span>
-            Synthetic Data Only · Persistent Memory Source of Truth · Deterministic Python Policy Gate
+            Synthetic Data Only · Original Browser Demo + Server Memory Workspace
           </span>
         </div>
       </footer>

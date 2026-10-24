@@ -149,7 +149,7 @@ export const CompanionView: React.FC<CompanionViewProps> = ({
                   Evidence-Grounded Memory Q&A
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Answers strictly from active MongoDB records using alias citations [E1..E{activeEvents.length}]
+                  Original browser demo records using alias citations [E1..E{activeEvents.length}]. Use the persistent memory workspace for Atlas retrieval.
                 </p>
               </div>
               <span className="text-xs text-slate-500 font-mono tabular-nums shrink-0">
@@ -239,7 +239,15 @@ export const CompanionView: React.FC<CompanionViewProps> = ({
           </section>
 
           {/* Latest Grounded Response & Evidence Verification Breakdown */}
-          {latestTurn && (
+          {latestTurn && latestTurn.answer_version !== 'grounded-v2' && (
+            <section aria-label="Historical unchecked answer" className="bg-white border border-amber-200 rounded-xl p-6 space-y-3">
+              <h2 className="font-semibold">Previous answer needs to be checked again</h2>
+              <p className="text-sm">Question: “{latestTurn.question}”</p>
+              <p className="text-sm text-slate-600">The old answer and its citations are not verified. They are hidden together; no unrelated visit record is presented as support.</p>
+              <button type="button" disabled={isAsking} className="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm disabled:opacity-40" onClick={() => void onAskQuestion(latestTurn.question)}>Check this question again</button>
+            </section>
+          )}
+          {latestTurn?.answer_version === 'grounded-v2' && (
             <section
               aria-label="Latest Grounded Caregiver Response"
               className="bg-white border border-slate-200 rounded-xl p-6 space-y-5"
@@ -301,7 +309,7 @@ export const CompanionView: React.FC<CompanionViewProps> = ({
                 </p>
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
                   <p className="text-base font-medium text-slate-900 leading-relaxed">
-                    {latestTurn.answer}
+                    {latestTurn.answer_version === 'grounded-v2' ? latestTurn.answer : 'This is a historical browser-demo answer that has not passed the updated checks. Ask the question again to retrieve source reports.'}
                   </p>
                 </div>
               </div>
@@ -312,7 +320,7 @@ export const CompanionView: React.FC<CompanionViewProps> = ({
                   Uncertainty & Epistemic Provenance Note
                 </p>
                 <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  {latestTurn.uncertainty}
+                  {latestTurn.answer_version === 'grounded-v2' ? latestTurn.uncertainty : 'Historical answer retained for review; its claims are not displayed as verified information.'}
                 </p>
               </div>
 
@@ -373,7 +381,7 @@ export const CompanionView: React.FC<CompanionViewProps> = ({
                 Autonomous Safety & Memory Watchdogs
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Tier 1 background monitors running continuously over persistent MongoDB state
+                Demonstration checks over browser state; these are not continuous Atlas monitoring.
               </p>
             </div>
 
@@ -435,7 +443,7 @@ export const CompanionView: React.FC<CompanionViewProps> = ({
               <div className="pt-4 space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-slate-900">
-                    03. Deterministic Policy Gate (policy.py)
+                    03. Deterministic Policy Demo (TypeScript)
                   </span>
                   <span className="font-mono tabular-nums text-slate-700 font-medium">
                     {state.actions.filter((a) => a.status === 'pending_approval').length} Pending Approval

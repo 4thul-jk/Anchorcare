@@ -1,3 +1,4 @@
+import { selectQuotedEvidence, quoteReports } from './groundedAnswer';
 export type EventType =
   | 'meal_hydration'
   | 'medication_routine'
@@ -121,6 +122,7 @@ export interface AuditEntry {
 }
 
 export interface QuestionTurn {
+  answer_version?: 'grounded-v2';
   id: string;
   timestamp: string;
   asked_by: ActorRole;
@@ -249,7 +251,9 @@ export function validateAndResolveCitations(
   const validAliases: string[] = [];
   const rejectedCitations: string[] = [];
 
+  if (!Array.isArray(rawCitations)) rawCitations = ['[malformed citations]'];
   for (const raw of rawCitations) {
+    if (typeof raw !== 'string') { rejectedCitations.push('[malformed citation]'); continue; }
     const cleaned = raw.trim().replace(/^\[|\]$/g, '');
     if (cleaned in aliasMap.aliasToEventId) {
       const resolvedId = aliasMap.aliasToEventId[cleaned];
@@ -361,7 +365,8 @@ export function detectEventContradictions(
  */
 export function normalizeQuestionTopic(question: string): string {
   const lower = question.toLowerCase().trim();
-  if (lower.includes('sarah') || lower.includes('daughter') || lower.includes('visit')) {
+  if (/physical therap|physiotherap/.test(lower)) return 'topic:physiotherapy_visit';
+  if (lower.includes('sarah') || lower.includes('daughter')) {
     return 'topic:sarah_visit';
   }
   if (lower.includes('breakfast') || lower.includes('tea') || lower.includes('morning meal') || lower.includes('oatmeal')) {
@@ -984,8 +989,11 @@ export function answerQuestionFromEvidence(
       };
     }
 
+    const relevantIds = new Set(selectQuotedEvidence(activeEvents, question).map(e => e.id));
+    const acceptedEvidence = citationCheck.rejectedCitations.length === 0 && citationCheck.validEventIds.length > 0
+      && citationCheck.validEventIds.every(id => relevantIds.has(id));
     let proposedActionId: string | null = null;
-    if (llmOverride.proposed_action) {
+    if (acceptedEvidence && llmOverride.proposed_action) {
       const actionRes = proposeAndProcessAction(
         nextState,
         llmOverride.proposed_action,
@@ -1011,22 +1019,22 @@ export function answerQuestionFromEvidence(
     }
 
     const turn: QuestionTurn = {
+      answer_version: 'grounded-v2',
       id: `turn_${String(nextState.sessionTurns.length + 1).padStart(3, '0')}`,
       timestamp: now,
       asked_by: actorRole,
       question,
       normalized_topic: topic,
-      answer:
-        citationCheck.rejectedCitations.length > 0 && citationCheck.validEventIds.length === 0
-          ? 'I could not verify the citation IDs returned for this answer against active records, so I am abstaining for safety.'
-          : llmOverride.answer,
-      cited_event_ids: citationCheck.validEventIds,
-      prompt_aliases_used: citationCheck.validAliases,
+      answer: acceptedEvidence
+        ? quoteReports(activeEvents.filter(e => citationCheck.validEventIds.includes(e.id)))
+        : 'I could not verify supporting citations, so I cannot establish an answer from the saved records.',
+      cited_event_ids: acceptedEvidence ? citationCheck.validEventIds : [],
+      prompt_aliases_used: acceptedEvidence ? citationCheck.validAliases : [],
       rejected_citations: citationCheck.rejectedCitations,
-      epistemic_basis: llmOverride.epistemic_basis,
+      epistemic_basis: acceptedEvidence ? "reported" : "insufficient_evidence",
       has_conflicting_evidence:
         llmOverride.has_conflicting_evidence || citationCheck.hasConflictInCited,
-      uncertainty: llmOverride.uncertainty,
+      uncertainty: acceptedEvidence ? 'Original source quotations shown instead of an unchecked model paraphrase. Citation membership is not proof of relevance or truth.' : 'Missing or invalid evidence citations; generated answer and action are withheld.',
       repetitive_loop_count: repetitionCount,
       is_reassurance_mode: isReassuranceMode,
       proposed_action_id: proposedActionId,
@@ -1049,131 +1057,33 @@ export function answerQuestionFromEvidence(
   let epistemicBasis: QuestionTurn['epistemic_basis'] = 'observed';
   let proposedAction: ProposedActionPayload | null = null;
 
-  // Check prohibited action requests first (e.g., medication changes, unlocking doors, emergency)
-  if (
-    lower.includes('double my dose') ||
-    lower.includes('change medication') ||
-    lower.includes('extra pill') ||
-    lower.includes('blood pressure dose')
-  ) {
-    matchedEvents = activeEvents.filter((e) => e.event_type === 'medication_routine');
-    epistemicBasis = matchedEvents.length > 0 ? 'observed' : 'insufficient_evidence';
-    answer =
-      'I cannot change medication doses or authorize extra tablets. Your morning routine notes that your standard Lisinopril 10mg tablet was taken at 08:45 UTC. Please speak directly with Sam Rivera or your physician before taking any additional medication.';
-    uncertainty =
-      'Clinical safety boundary: Medication modifications are strictly prohibited by policy.';
+  // Never synthesize event details from fixture-specific templates.
+  if (/double my dose|change medication|extra pill|blood pressure dose/i.test(question)) {
+    answer = 'I cannot change medication doses or confirm that a dose was taken. Please check with your caregiver or clinician.';
+    uncertainty = 'Medication changes are blocked; no ingestion claim is made.';
+    epistemicBasis = 'insufficient_evidence';
     proposedAction = {
-      action_type: 'change_medication_dose',
-      summary: 'Requested change to Lisinopril dosage via chat',
-      target_person_id: state.person.id,
-      parameters: { medication: 'Lisinopril', requested_change: 'increase_dose' },
-      supporting_evidence_ids: matchedEvents.map((e) => e.id),
+      action_type: 'change_medication_dose', summary: 'Medication-change request blocked',
+      target_person_id: state.person.id, parameters: {}, supporting_evidence_ids: []
     };
-  } else if (lower.includes('breakfast') || lower.includes('tea') || lower.includes('oatmeal')) {
-    matchedEvents = activeEvents.filter(
-      (e) =>
-        e.event_type === 'meal_hydration' &&
-        (e.statement.toLowerCase().includes('breakfast') ||
-          e.statement.toLowerCase().includes('tea') ||
-          e.statement.toLowerCase().includes('oatmeal'))
-    );
-    if (matchedEvents.length > 0) {
-      const hasConflict = matchedEvents.some((e) => e.conflict_with_ids.length > 0);
-      epistemicBasis = matchedEvents[0].epistemic_status;
-      if (hasConflict) {
-        answer = `There are conflicting active reports about breakfast today: ${matchedEvents
-          .map((e) => `"${e.statement}" (logged by ${e.source.author})`)
-          .join(' vs. ')}. I have flagged this conflict for Sam Rivera to verify.`;
-        uncertainty = 'Conflicting active caregiver reports exist for this meal.';
-      } else {
-        answer = `Yes, Alex — according to Caregiver Sam Rivera's observed log this morning, ${matchedEvents[0].statement}`;
-        uncertainty =
-          'Note: An earlier entry at 09:20 UTC mistakenly mentioned coffee, which was corrected to Earl Grey tea at 09:35 UTC.';
-      }
-    }
-  } else if (lower.includes('lunch') || lower.includes('sandwich') || lower.includes('soup')) {
-    matchedEvents = activeEvents.filter(
-      (e) =>
-        e.event_type === 'meal_hydration' &&
-        (e.statement.toLowerCase().includes('lunch') ||
-          e.statement.toLowerCase().includes('sandwich') ||
-          e.statement.toLowerCase().includes('soup'))
-    );
-    if (matchedEvents.length > 0) {
-      const hasConflict = matchedEvents.some((e) => e.conflict_with_ids.length > 0);
-      epistemicBasis = matchedEvents[0].epistemic_status;
-      if (hasConflict) {
-        answer = `We have two conflicting active records regarding lunch today: ${matchedEvents
-          .map((e) => `[${aliasMap.eventIdToAlias[e.id]}] "${e.statement}" (${e.source.author})`)
-          .join(' AND ')}. I cannot confirm which one is accurate until a caregiver resolves the conflict.`;
-        uncertainty = 'High uncertainty: Two contradictory active lunch reports exist on the same day.';
-      } else {
-        answer = `Yes — at 12:30 UTC today, Sam Rivera observed that ${matchedEvents[0].statement}`;
-        uncertainty = 'Directly observed by primary caregiver; high confidence.';
-      }
-    }
-  } else if (lower.includes('sarah') || lower.includes('daughter') || lower.includes('visit')) {
-    matchedEvents = activeEvents.filter(
-      (e) =>
-        e.event_type === 'family_visit' ||
-        e.statement.toLowerCase().includes('sarah')
-    );
-    if (matchedEvents.length > 0) {
-      epistemicBasis = 'reported';
-      const baseText = `Your daughter Sarah called at 11:15 UTC this morning and reported that she will visit you today at 4:30 PM (16:30 UTC) and bring fresh strawberries.`;
-      answer = isReassuranceMode
-        ? `You are completely safe at home, Alex. Sarah is on her way later this afternoon at 4:30 PM with fresh strawberries. Everything is on schedule, and Sam is right here with you.`
-        : baseText;
-      uncertainty =
-        'Epistemic status is REPORTED (based on Sarah’s phone call at 11:15 UTC), not yet an observed arrival.';
-    }
-  } else if (lower.includes('walk') || lower.includes('garden') || lower.includes('outside')) {
-    matchedEvents = activeEvents.filter(
-      (e) =>
-        e.event_type === 'daily_activity' ||
-        e.statement.toLowerCase().includes('walk')
-    );
-    if (matchedEvents.length > 0) {
-      epistemicBasis = matchedEvents[0].epistemic_status;
-      answer = `Yes, you went for a 20-minute walk in the courtyard garden with Sam Rivera at 10:15 UTC this morning and looked at the rosemary bushes.`;
-      uncertainty = 'Directly observed event (`evt_002`).';
-    }
-  } else if (lower.includes('remind') || lower.includes('message') || lower.includes('call sarah')) {
-    matchedEvents = activeEvents.filter((e) => e.statement.toLowerCase().includes('sarah'));
-    epistemicBasis = matchedEvents.length > 0 ? 'reported' : 'insufficient_evidence';
-    answer =
-      'I have drafted a reminder/message proposal for you, and sent it to Caregiver Sam Rivera for confirmation before it executes.';
-    uncertainty = 'Action requires caregiver approval under Tier 3 policy rules.';
+  } else if (/\b(remind|reminder|message)\b/i.test(question)) {
+    answer = 'A proposal will be recorded in this browser demo for caregiver review. No message has been sent or real reminder scheduled by this demo action.';
+    uncertainty = 'Use the server-connected reminder workspace for real reminder execution.';
+    epistemicBasis = 'insufficient_evidence';
     proposedAction = {
       action_type: lower.includes('message') ? 'draft_family_message' : 'create_reminder',
-      summary: lower.includes('message')
-        ? 'Draft message to daughter Sarah Mercer confirming 4:30 PM visit'
-        : `Reminder requested: "${question}"`,
-      target_person_id: state.person.id,
-      parameters: { requested_by: actorRole, note: question },
-      supporting_evidence_ids: matchedEvents.map((e) => e.id),
+      summary: `Requested proposal: ${question}`, target_person_id: state.person.id,
+      parameters: { requested_by: actorRole, note: question }, supporting_evidence_ids: []
     };
-  } else if (lower.includes('where am i') || lower.includes('what day') || lower.includes('confused')) {
-    matchedEvents = activeEvents.slice(0, 2);
-    epistemicBasis = 'observed';
-    answer = `Today is Saturday, 24 October 2026. You are safe at home in Meadowbrook Residence (24 Oak Lane), and your caregiver Sam Rivera is with you today.`;
-    uncertainty = 'Grounded in current session and active daily logs.';
-    proposedAction = {
-      action_type: 'show_orientation_card',
-      summary: 'Pin high-contrast Orientation & Reassurance Card for Alex',
-      target_person_id: state.person.id,
-      parameters: { reason: 'orientation_query' },
-      supporting_evidence_ids: matchedEvents.map((e) => e.id),
-    };
-  }
-
-  // If no matching record exists -> Explicit Abstention ("No matching record found")
-  if (matchedEvents.length === 0 && !proposedAction) {
+  } else if (/where am i|am i safe|where is my caregiver/i.test(question)) {
+    answer = 'I cannot establish your current location or who is with you from these saved reports.';
+    uncertainty = 'No live location or caregiver-presence verification is available.';
     epistemicBasis = 'insufficient_evidence';
-    answer =
-      'I cannot establish the answer from the available active records. No matching event was found in your memory log for that question.';
-    uncertainty =
-      'Abstained safely: Zero matching active evidence records retrieved in MongoDB memory store.';
+  } else {
+    matchedEvents = selectQuotedEvidence(activeEvents, question);
+    answer = quoteReports(matchedEvents);
+    epistemicBasis = matchedEvents.length ? matchedEvents.some(e => e.epistemic_status === 'inferred') ? 'inferred' : matchedEvents.some(e => e.epistemic_status === 'reported') ? 'reported' : 'observed' : 'insufficient_evidence';
+    uncertainty = matchedEvents.length ? 'Original browser-demo source quotations only. Relevance and factual truth are not independently verified.' : 'No supporting browser-demo record found; no event completion is inferred.';
   }
 
   const citationCheck = validateAndResolveCitations(
@@ -1205,6 +1115,7 @@ export function answerQuestionFromEvidence(
   }
 
   const turn: QuestionTurn = {
+    answer_version: 'grounded-v2',
     id: `turn_${String(nextState.sessionTurns.length + 1).padStart(3, '0')}`,
     timestamp: now,
     asked_by: actorRole,
