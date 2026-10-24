@@ -59,3 +59,13 @@ test('caregiver withdrawal is not undone by retrying a saved turn',async()=>{
  const quote='I prefer peppermint tea.';const f=fixture({intent:'information',question_text:null,topics:['preference'],items:[item(quote,'personal',null)]});const turn=await f.agent.turn('p',{turn_id:'withdraw',transcript:quote});const saved=await f.agent.commit('p',{id:turn._id});const out=saved.outputs[0];assert.equal(out.status,'available_report');
  await f.store.update('personal_records',{_id:out.id},{reviewStatus:'draft',reviewedAt:new Date(now)});await f.agent.commit('p',{id:turn._id});assert.equal((await f.store.one('personal_records',{_id:out.id})).reviewStatus,'draft');
 });
+
+
+test('Gemini introductions save timestamped reported people without overwriting patient identity or guessing a photo',async()=>{
+ const quote='This is Priya, my daughter.';const f=fixture({intent:'information',question_text:null,topics:['family'],items:[item(quote,'personal',null)],introductions:[{name:'Priya',relationship:'daughter',quote}]});
+ const t=await f.agent.turn('p',{turn_id:'intro',transcript:quote});const saved=await f.agent.commit('p',{id:t._id});await f.agent.commit('p',{id:t._id});
+ const reports=await f.store.list('agent_identity_reports');assert.equal(reports.length,1);assert.equal(reports[0].name,'Priya');assert.equal(reports[0].identityVerified,false);assert.equal(reports[0].photoLinked,false);assert.equal(+reports[0].recordedAt,+now);
+ const people=await f.store.list('people');assert.equal(people.length,1);assert.equal(people[0].relationship,'daughter');assert.equal((await f.store.list('personal_records')).length,1);assert.match(saved.acknowledgement,/Priya/);
+ const self='My name is Priya.';const other=fixture({intent:'information',question_text:null,topics:['introduction'],items:[],introductions:[{name:'Priya',relationship:null,quote:self}]});const a=await other.agent.turn('p',{turn_id:'self',transcript:self});const result=await other.agent.commit('p',{id:a._id});assert.equal((await other.store.list('people')).length,0);assert.match(result.acknowledgement,/How is Priya related/);assert.match((await other.store.list('personal_records'))[0].originalText,/unconfirmed/);
+ assert.throws(()=>checkedTurn({transcript:self,intent:'information',question_text:null,topics:[],items:[],introductions:[{name:'Sarah',relationship:'daughter',quote:self}]}));
+});

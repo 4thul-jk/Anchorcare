@@ -24,7 +24,7 @@ export function careRoleAnswer(context:any,role:string){
   return {status:'answered',answer:claims.map((c:any)=>c.text).join(' '),claims,context:{...context,sections:{personal_records:{...section,records:reports.slice(0,3)}}},conversational:false,verification:'stored_user_report_relationship'};
  }
  if(records.length){
-  const claims=records.map((r:any)=>({text:`${r.person.name} is your ${role}.`,citations:[{section:'personal_records',recordId:r._id,sourceId:r._id,quote:r.originalText}]}));
+  const claims=records.map((r:any)=>({text:r.sourceType==='user_report'?`You told me ${r.person.name} is your ${role}.`:`${r.person.name} is your ${role}.`,citations:[{section:'personal_records',recordId:r._id,sourceId:r._id,quote:r.originalText}]}));
   return {status:'answered',answer:claims.map((c:any)=>c.text).join(' '),claims,context:filtered,conversational:false,verification:'approved_exact_care_role'};
  }
  const physio=role==='psychotherapist'&&(section.records||[]).some((r:any)=>r.person?.relationship==='physiotherapist');

@@ -188,3 +188,8 @@ User clarified that the perceived UI error was the approval wording. Session rep
 ## 2026-10-25 — Identify people linked to saved pictures
 
 Added linked name/relationship explanations and a spoken Who is this? button. New authenticated /identify-image route revalidates scoped approved person/photo links; ambiguous images never fall back to a random family member. No facial recognition or new camera identity inference is claimed. 151 tests and type check passed. Own branch only; teammate schema unchanged.
+
+
+## 2026-10-25 — Gemini records spoken introductions
+
+Added structured name/relationship/quote extraction and automatic timestamped identity reports. Explicit relationships create scoped reported person/personal-record links without approval gating for storage. Bare names do not overwrite patient identity or identify a camera face. Preserved teammate schemas; own agent_identity_reports collection documented in the catalogue. 152 tests and type checks passed; synthetic live Gemini extraction checked.
