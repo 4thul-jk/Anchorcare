@@ -239,7 +239,15 @@ export const CompanionView: React.FC<CompanionViewProps> = ({
           </section>
 
           {/* Latest Grounded Response & Evidence Verification Breakdown */}
-          {latestTurn && (
+          {latestTurn && latestTurn.answer_version !== 'grounded-v2' && (
+            <section aria-label="Historical unchecked answer" className="bg-white border border-amber-200 rounded-xl p-6 space-y-3">
+              <h2 className="font-semibold">Previous answer needs to be checked again</h2>
+              <p className="text-sm">Question: “{latestTurn.question}”</p>
+              <p className="text-sm text-slate-600">The old answer and its citations are not verified. They are hidden together; no unrelated visit record is presented as support.</p>
+              <button type="button" disabled={isAsking} className="rounded-lg bg-slate-900 text-white px-4 py-2 text-sm disabled:opacity-40" onClick={() => void onAskQuestion(latestTurn.question)}>Check this question again</button>
+            </section>
+          )}
+          {latestTurn?.answer_version === 'grounded-v2' && (
             <section
               aria-label="Latest Grounded Caregiver Response"
               className="bg-white border border-slate-200 rounded-xl p-6 space-y-5"

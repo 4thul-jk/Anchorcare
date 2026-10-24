@@ -365,7 +365,8 @@ export function detectEventContradictions(
  */
 export function normalizeQuestionTopic(question: string): string {
   const lower = question.toLowerCase().trim();
-  if (lower.includes('sarah') || lower.includes('daughter') || lower.includes('visit')) {
+  if (/physical therap|physiotherap/.test(lower)) return 'topic:physiotherapy_visit';
+  if (lower.includes('sarah') || lower.includes('daughter')) {
     return 'topic:sarah_visit';
   }
   if (lower.includes('breakfast') || lower.includes('tea') || lower.includes('morning meal') || lower.includes('oatmeal')) {
@@ -988,7 +989,9 @@ export function answerQuestionFromEvidence(
       };
     }
 
-    const acceptedEvidence = citationCheck.rejectedCitations.length === 0 && citationCheck.validEventIds.length > 0;
+    const relevantIds = new Set(selectQuotedEvidence(activeEvents, question).map(e => e.id));
+    const acceptedEvidence = citationCheck.rejectedCitations.length === 0 && citationCheck.validEventIds.length > 0
+      && citationCheck.validEventIds.every(id => relevantIds.has(id));
     let proposedActionId: string | null = null;
     if (acceptedEvidence && llmOverride.proposed_action) {
       const actionRes = proposeAndProcessAction(

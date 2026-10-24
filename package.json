@@ -8,7 +8,7 @@
     "dev": "tsx server.ts",
     "build": "vite build",
     "start": "tsx server.ts",
-    "test": "tsx --test src/lib/caregiverEngine.test.ts src/lib/groundedAnswer.test.ts integration/engram.test.ts integration/ledger.test.ts integration/source-quotes.test.ts",
+    "test": "tsx --test src/lib/caregiverEngine.test.ts src/lib/groundedAnswer.test.ts src/lib/historicalAnswer.test.tsx integration/engram.test.ts integration/ledger.test.ts integration/source-quotes.test.ts",
     "test:memory": "node --test engram-retrieval/test/*.test.js",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",

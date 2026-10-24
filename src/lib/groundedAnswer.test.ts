@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createInitialState, answerQuestionFromEvidence } from './caregiverEngine';
+import { createInitialState, answerQuestionFromEvidence, normalizeQuestionTopic } from './caregiverEngine';
 import { selectQuotedEvidence } from './groundedAnswer';
 
 test('changed visit record is quoted without inventing original arrival time or location', () => {
@@ -37,8 +37,18 @@ test('mixed or empty model citations block the answer and proposed action', () =
 });
 test('valid ID alone cannot expose an unsupported model paraphrase', () => {
   const result = answerQuestionFromEvidence(createInitialState(), 'Who visited?', 'patient', {
-    answer: 'Sarah is outside right now.', evidence_ids: ['E1'], epistemic_basis: 'observed', has_conflicting_evidence: false, uncertainty: 'certain'
+    answer: 'Sarah is outside right now.', evidence_ids: ['E3'], epistemic_basis: 'observed', has_conflicting_evidence: false, uncertainty: 'certain'
   });
   assert.doesNotMatch(result.turn.answer, /outside right now/);
   assert.match(result.turn.answer, /saved report/);
+});
+test('physiotherapist yesterday cannot cite a daughter visit today, even with a valid model ID', () => {
+  const state = createInitialState(); const question = 'Did the physical therapist visit me yesterday evening?';
+  assert.equal(answerQuestionFromEvidence(state, question, 'patient').turn.epistemic_basis, 'insufficient_evidence');
+  const result = answerQuestionFromEvidence(state, question, 'patient', {
+    answer: 'Yes, Sarah visited.', evidence_ids: ['E3'], epistemic_basis: 'reported', has_conflicting_evidence: false, uncertainty: 'certain'
+  });
+  assert.equal(result.turn.epistemic_basis, 'insufficient_evidence');
+  assert.deepEqual(result.turn.cited_event_ids, []);
+  assert.notEqual(normalizeQuestionTopic(question), normalizeQuestionTopic('When is Sarah visiting?'));
 });

@@ -67,6 +67,8 @@ Mixed valid/invalid and empty model citations now withhold both the generated an
 
 19 root tests pass, including seven new wrong-answer/quote checks; 99 component tests remain the imported suite. No new live Gemini call is claimed. The original companion remains a browser-demo source path; this fix does not migrate it to Atlas. Patient-specific failures still need to be checked against the exact reported question and saved evidence.
 
+Screenshot follow-up: the exact physiotherapist/yesterday question now has a regression test, including a model citation to today's daughter visit. Such citations are rejected by conservative question/date matching. Physiotherapy visit repetitions no longer share the Sarah-visit topic. Historical answer cards now hide old evidence metadata and reassurance banners together and provide an explicit recheck button. A server-rendered UI regression verifies those historical badges do not appear. Root suite now passes 21 tests. Existing browser records are retained, not reset.
+
 ## Main-ledger migration checkpoint
 
 - Main navigation Memory Ledger now renders AtlasLedgerView. Access key remains in React memory, not localStorage; server-derived role/patient still control reads and writes. Shared credentials are a local prototype mechanism, not individual accounts.
