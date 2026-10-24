@@ -238,3 +238,8 @@ After explicit user approval, copied only six approved existing credential value
 ## 2026-10-25 — Key-free fictional patient demo
 
 User requested direct hosted patient entry. Implemented a fail-closed public-demo mode restricted to new muse_public_demo database / muse-public-demo household. Seeded fictional records and illustrations, copying only search definitions. Anonymous personal-fact promotion, raw media retention, GPS, admin access and external caretaker actions are blocked; conversation metadata expires after one hour. Original private database is unchanged. See PUBLIC-PATIENT-DEMO.md.
+
+
+## 2026-10-25 04:50 IST — Key-free hosted patient demo verified live
+
+Render deployed source 1d743ab after isolated database/household configuration was corrected. The guard refused an earlier mismatch, preserving private access. Anonymous hosted status now 200/publicDemo=true; private/admin listing and GPS POST return 403. Daughter recall returns Sarah Mercer is your daughter; one fictional illustration returned with muse-public-demo scope. Both search indexes READY. Browser reload visibly opens Muse directly without a key. Local private data unchanged. 171 application tests, types and build passed. See RENDER-DEPLOYMENT.md for the earlier authenticated launch and public-mode verification.

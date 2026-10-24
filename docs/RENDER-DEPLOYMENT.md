@@ -21,3 +21,12 @@ For later updates, push a reviewed commit to the separate branch, then use Rende
 ## Verification
 
 First deployment dep-dbejekss728c73cec4n0 built the Docker image but failed at Node startup while selecting an Atlas server (1m11s, 25 October 2026 04:25 IST start). Render service srv-dbejekcs728c73cec2og exists on the Free plan. The app did not pass /healthz. The Render dashboard reports shared region outbound CIDRs 74.220.50.0/24 and 74.220.58.0/24. Atlas sign-in and explicit access-list approval are pending; no access-list entry was changed. No unauthenticated memory access or successful public deployment is claimed.
+
+
+## Live verification and key-free mode (25 October 2026)
+
+After the user added the two Render outbound CIDRs in Atlas, deployment dep-dbejk6ks728c73cevo1g went Live at 04:37:51 IST on source c1617dd. Verified homepage/health HTTP 200, unauthenticated private API HTTP 401, authenticated Atlas+Argon status, unrelated-Origin HTTP 403 and a Gemini public question with four citations.
+
+The user then requested no access-key prompt. The hosted showcase now uses PUBLIC_PATIENT_DEMO=true, MONGODB_DATABASE=muse_public_demo and HOUSEHOLD_ID=muse-public-demo, on source 1d743ab. Startup refuses this mode against the original private database. An initial settings mismatch was caught by that guard; after correcting the visible database/household values, the replacement went Live at 04:50:05 IST. Only fixture data was seeded into the new database. Both copied text/vector index definitions are READY/queryable. No private records or recordings were copied.
+
+Verified the new mode without a key: status HTTP 200 with publicDemo=true and demoAutoLogin=true; admin/storage and personal-record listing HTTP 403; fictional daughter recall HTTP 200 (Sarah Mercer is your daughter); fictional picture lookup returns one public-workspace image; GPS submission HTTP 403. Reloaded browser visibly opens the Muse patient controls with no key field. See PUBLIC-PATIENT-DEMO.md for the disabled sensitive features and one-hour guest journal retention. Original private/local data and full controls remain in the original setup. Current cloud anonymous entry is a fictional showcase, not an anonymous live-patient workspace.

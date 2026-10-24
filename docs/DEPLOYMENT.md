@@ -1,6 +1,6 @@
 # HTTPS deployment preparation
 
-Prepared 24 October 2026. No public deployment has been created; the local Wi-Fi demo remains available.
+Updated 25 October 2026: https://muse-anchorcare-demo.onrender.com is live on Render Free. It opens directly into an isolated fictional patient demo; the original private data is not exposed. See RENDER-DEPLOYMENT.md and PUBLIC-PATIENT-DEMO.md for exact settings and verification. The local Wi-Fi setup remains available.
 
 ## Deploy the same Node service
 
