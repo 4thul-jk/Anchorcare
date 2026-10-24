@@ -36,6 +36,8 @@ Long-running operations can still overlap approval changes; refreshed citations 
 
 ## Validation
 
+For realistic fictional patient records, run `npm run demo:seed-atlas`, then `npm run demo:verify-atlas` against the running app. See [demo scenario and questions](docs/DEMO-DATA.md). No real patient data is included.
+
 ```sh
 npm test
 npm run test:memory
