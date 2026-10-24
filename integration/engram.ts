@@ -119,6 +119,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
           }
         }
         if(path==='/ask'){
+          if(/^(?:who is (?:this|that|in (?:this|that) (?:picture|photo)))[?!. ]*$/i.test(input.question||''))return input.image_id?await imageMemory.identifySaved(patient,String(input.image_id)):{status:'support',answer:'Which saved picture do you mean? Tap Who is this? below the picture, and I can explain their name and relationship to you.',conversational:true};
           const care=await agent.careReply(patient,input.agent_turn_id);if(care)return care;
           const contextual=await agent.contextualReply(patient,input.agent_turn_id);if(contextual)return contextual;
           const location=await agent.locationReply(patient,input.question,input.agent_turn_id);if(location)return location;
@@ -255,6 +256,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
         try{return void res.json(req.path==='/agent/turn'?await agent.turn(patient,input,stop.signal):await agent.commit(patient,input,stop.signal));}
         finally{clearTimeout(timer);res.off('close',disconnected);}
       }
+      if(req.method==='POST'&&req.path==='/identify-image'){limits.take('identify-image:'+credentialBucket(key),30);return void res.json(await imageMemory.identifySaved(patient,String(input.image_id||'')));}
       if(req.method==='GET'&&req.path==='/admin/storage'){if(!admin)return void res.status(403).json({error:'Caregiver access required'});return void res.json({collections:store.mode==='mongodb'?await describeStorage((store as any).db):[]});}
       if(req.method==='GET'&&req.path==='/admin/agent/session-reports'){if(!admin)return void res.status(403).json({error:'Caregiver access required'});return void res.json({reports:await store.list('agent_session_reports',service.scope(patient),{createdAt:-1},20)});}
       if(req.method==='GET'&&req.path==='/agent/history')return void res.json({turns:await agent.history(patient,String(input.session_id||''))});

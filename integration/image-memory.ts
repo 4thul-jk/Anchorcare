@@ -68,11 +68,19 @@ export class ImageMemory{
   }else bytes=Buffer.from(asset.data);
   return {bytes,contentType:asset.contentType};
  }
+ async identifySaved(patient:string,imageId:string){
+  const asset=await this.approvedMetadata(patient,imageId);
+  if(!asset||asset.targetType!=='person')return {status:'no_support',answer:"I don't have a confirmed person linked to this picture. Your caregiver can add their name and relationship.",images:[]};
+  const person=await this.target(patient,'person',asset.targetId,true);
+  if(!person)return {status:'no_support',answer:"I can't confirm who is linked to this picture right now.",images:[]};
+  const answer=`This saved picture is labelled as ${person.name}`+(person.relationship?`, your ${person.relationship}.`:'.');
+  return {status:'answered',answer,person:{id:person._id,name:person.name,relationship:person.relationship||null},images:[{...asset,personName:person.name,personRelationship:person.relationship||null,identityExplanation:answer}],verification:'saved_person_image_link_not_face_recognition'};
+ }
  async pictureAnswer(patient:string,question:string){
   const result=await this.recall(patient,question);
   if(!result.images.length)return null;
   const names=[...new Set(result.images.map((image:any)=>image.personName).filter(Boolean))];
-  return {status:'answered',answer:names.length===1?`Here is a caregiver-labelled saved picture of ${names[0]}.`:'Here are the matching caregiver-labelled saved memory pictures.',
+  return {status:'answered',answer:names.length===1?(result.images.find((image:any)=>image.personName===names[0])?.identityExplanation||`Here is a saved picture of ${names[0]}.`):'Here are the matching caregiver-labelled saved memory pictures.',
    images:result.images,verification:'approved_image_labels',conversational:false,imageQuery:question};
  }
  async recall(patient:string,question:unknown,referenceIds:unknown=[]){
@@ -99,16 +107,16 @@ export class ImageMemory{
   const family=/\b(?:family|relatives)\b/i.test(query)&&terms.length===0;
   for(const asset of assets){
    const target:any=asset.targetType==='person'?approvedPeople.get(asset.targetId):approvedEpisodes.get(asset.targetId);if(!target)continue;
-   let score=0,personName:string|undefined;
+   let score=0,personName:string|undefined,personRelationship:string|undefined,identityExplanation:string|undefined;
    if(asset.targetType==='person'){
     const nameWords=[...words(target.name)];const first=nameWords[0];
     const named=first&&q.has(first)||normaliseRecallQuery(query).includes(normaliseRecallQuery(target.name));
     const relation=String(target.relationship||'').toLowerCase();const related=relation&&[...words(relation)].every(w=>q.has(w));
-    if(named||related||family||referencedPeople.has(asset.targetId)){score=named?10:related?8:referencedPeople.has(asset.targetId)?7:2;personName=target.name;}
+    if(named||related||family||referencedPeople.has(asset.targetId)){score=named?10:related?8:referencedPeople.has(asset.targetId)?7:2;personName=target.name;personRelationship=target.relationship;identityExplanation=`This saved picture is labelled as ${target.name}`+(target.relationship?`, your ${target.relationship}.`:'.');}
    }else{
     const caption=words(asset.caption+' '+(target.summary||''));score=references.has(asset.targetId)?10:terms.filter(w=>caption.has(w)).length;
    }
-   if(score)results.push({...this.metadata(asset),personName,score,interpretation:'Caregiver-labelled saved picture; no face recognition or visual identity verification.'});
+   if(score)results.push({...this.metadata(asset),personName,personRelationship,identityExplanation,score,interpretation:'Caregiver-labelled saved picture; no face recognition or visual identity verification.'});
   }
   results.sort((a,b)=>b.score-a.score);
   return {images:results.slice(0,4),requested:/\b(?:photo|photos|picture|pictures|image|images|show|remember|memory|memories)\b/i.test(query),selection:'Approved pictures matched by saved person/relationship labels or memory captions; not visual recognition.'};

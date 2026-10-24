@@ -183,3 +183,8 @@ Live verification checkpoint recorded at 2026-10-24 21:34:24 UTC (25 October in 
 ## 2026-10-25 — Storage clarity and non-destructive cleanup
 
 User clarified that the perceived UI error was the approval wording. Session reports now explicitly auto-save (notVerified remains true), and readable report rendering hides raw Markdown/technical IDs. Supporting evidence collapses by default. Added caregiver-only collection guide with human-readable names and counts. Inspected engram/test/internal-search databases; all shared/required collections preserved. Backed up and removed exactly four expired demo pairing-code records at 2026-10-24 21:49 UTC. See DATABASE-ORGANISATION.md; teammate schemas and database names remain unchanged.
+
+
+## 2026-10-25 — Identify people linked to saved pictures
+
+Added linked name/relationship explanations and a spoken Who is this? button. New authenticated /identify-image route revalidates scoped approved person/photo links; ambiguous images never fall back to a random family member. No facial recognition or new camera identity inference is claimed. 151 tests and type check passed. Own branch only; teammate schema unchanged.

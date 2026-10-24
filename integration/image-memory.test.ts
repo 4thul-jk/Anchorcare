@@ -68,3 +68,13 @@ test('small encoded files cannot bypass JPEG or WebP pixel bounds',()=>{
  const webp=Buffer.alloc(30);webp.write('RIFF');webp.writeUInt32LE(22,4);webp.write('WEBP',8);webp.write('VP8X',12);webp.writeUInt32LE(10,16);assert.equal(validateImage('image/webp',webp.toString('base64')).contentType,'image/webp');webp.writeUIntLE(16000,24,3);webp.writeUIntLE(16000,27,3);assert.throws(()=>validateImage('image/webp',webp.toString('base64')));
  assert.throws(()=>validateImage('image/jpeg',Buffer.from([255,216,255,217]).toString('base64')));
 });
+
+
+test('saved photo identification explains only the linked scoped identity and honours withdrawal',async()=>{
+ const f=await fixture();const uploaded=await f.images.upload('p',{target_type:'person',target_id:'sarah',caption:'Fictional Sarah picture',content_type:'image/png',image_base64:png});
+ assert.equal((await f.images.identifySaved('p',uploaded.image._id)).status,'no_support');
+ await f.images.review('p',{image_id:uploaded.image._id,status:'approved'});
+ const result=await f.images.identifySaved('p',uploaded.image._id);assert.match(result.answer,/Sarah Mercer, your daughter/);assert.equal(result.verification,'saved_person_image_link_not_face_recognition');
+ assert.equal((await f.images.identifySaved('other',uploaded.image._id)).status,'no_support');
+ await f.store.update('personal_records',{...f.scope,_id:'sarah_card'},{reviewStatus:'draft'});assert.equal((await f.images.identifySaved('p',uploaded.image._id)).status,'no_support');
+});
