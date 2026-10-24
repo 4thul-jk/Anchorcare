@@ -233,3 +233,8 @@ Fixed location-only weather replies and removed no-speech placeholders from visi
 ## 2026-10-25 04:25 IST — Render first deployment
 
 After explicit user approval, copied only six approved existing credential values and non-secret runtime settings into Render private configuration. Created muse-anchorcare-demo on Free ($0) Docker plan, own c1617dd branch; auto-deploy off. First image build completed but Node startup failed on Atlas server selection before /healthz could pass. Render outbound CIDRs observed: 74.220.50.0/24 and 74.220.58.0/24 (shared regional ranges). Awaiting Atlas account sign-in and explicit network-access approval; no broad allowlisting, paid upgrade or successful public launch. See RENDER-DEPLOYMENT.md.
+
+
+## 2026-10-25 — Key-free fictional patient demo
+
+User requested direct hosted patient entry. Implemented a fail-closed public-demo mode restricted to new muse_public_demo database / muse-public-demo household. Seeded fictional records and illustrations, copying only search definitions. Anonymous personal-fact promotion, raw media retention, GPS, admin access and external caretaker actions are blocked; conversation metadata expires after one hour. Original private database is unchanged. See PUBLIC-PATIENT-DEMO.md.

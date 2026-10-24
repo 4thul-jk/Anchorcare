@@ -79,3 +79,8 @@ test('a standalone greeting cannot become a personal memory even if Gemini marks
 test('no speech is not a meaningful memory or daily conversation topic',async()=>{
  const f=fixture({transcript:'[No clear speech]',intent:'unclear',question_text:null,topics:[],items:[]});const t=await f.agent.turn('p',{turn_id:'silence',transcript:'[No clear speech]'});const saved=await f.agent.commit('p',{id:t._id});assert.equal(saved.noSpeech,true);assert.equal(saved.memorySaved,false);assert.equal((await f.agent.consolidate('p')).created,false);
 });
+
+
+test('anonymous public demo never promotes submitted information into shared patient facts',async()=>{
+ const quote='This is Priya, my daughter.';const f=fixture({intent:'information',question_text:null,topics:['family'],items:[item(quote,'personal',null)],introductions:[{name:'Priya',relationship:'daughter',quote}]});const t=await f.agent.turn('p',{turn_id:'public',transcript:quote});const saved=await f.agent.commit('p',{id:t._id,public_demo:true});assert.equal(saved.memorySaved,false);assert.equal((await f.store.list('personal_records')).length,0);assert.equal((await f.store.list('people')).length,0);assert.equal((await f.store.list('agent_identity_reports')).length,0);
+});

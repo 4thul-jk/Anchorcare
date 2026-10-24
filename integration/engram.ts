@@ -7,7 +7,7 @@ import {describeStorage} from './storage-catalog';
 import {ConversationSessions} from './conversation-session';
 import {missingMemoryReply} from './missing-memory';
 import {ConversationAgent,classifyInput} from './conversation-agent';
-import {localDemoAccess} from './demo-access';
+import {localDemoAccess,validatePublicDemo,publicDemoRoute} from './demo-access';
 import {RequestLimits,credentialBucket,validateRequestObject} from './http-security';
 import {companionSettings,companionClient} from './companion-provider';
 import {modelDiagnostics,providerReason} from './gemini-diagnostics';
@@ -50,6 +50,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
   const cfg = config();
   const companion = companionSettings();
   const patient = process.env.ANCHORCARE_PATIENT_ID || cfg.subjectIds[0];
+  const publicMode=validatePublicDemo(cfg,patient);
   const adminKey = process.env.ANCHORCARE_ADMIN_KEY;
   const companionKey = process.env.ANCHORCARE_COMPANION_KEY;
   if (adminKey && adminKey === companionKey) throw new Error('Use distinct AnchorCare access keys');
@@ -70,7 +71,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
   const telegramAgent=new TelegramAgent(service);
   const sessions=new ConversationSessions(service,agent,(patient,input)=>mobile.sos(patient,input));
   const push = new MobilePush(service,mobile);
-  async function recallAndForward(input:any){const result=await imageMemory.recall(patient,input.question,input.reference_ids);await mobile.sendImages(patient,result.images);return result;}
+  async function recallAndForward(input:any){const result=await imageMemory.recall(patient,input.question,input.reference_ids);if(!input.public_demo)await mobile.sendImages(patient,result.images);return result;}
   const routes: Record<string, { admin?: boolean; call: (input: any) => Promise<any> }> = {
     'POST /admin/agent/curate-image': {admin:true,call:input=>agent.curateImage(patient,input)},
     'POST /admin/agent/resolve': {admin:true,call:input=>agent.resolve(patient,input)},
@@ -115,10 +116,12 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
         if(path==='/ask'){
           const decision=await agent.contactDecision(patient,input.agent_turn_id);
           if(decision){
+            if(input.public_demo)return {status:'support',answer:'This is a fictional demo. No caretaker message or call was sent.',conversational:true};
             if(!decision.accepted)return {status:'support',answer:'Okay. I will not request contact. What would you like help remembering?',conversational:true};
             const result=await mobile.sos(patient,{idempotency_key:'contact_'+decision.id,reason:'The user accepted help contacting their emergency contact.'});
             return {status:'support',answer:result.message,action:result,conversational:true};
           }
+          if(input.public_demo&&(explicitSos(input.question)||/\blost\b/i.test(input.question)))return {status:'support',answer:'In a real setup I would help you contact your caretaker. This demo has not contacted anyone.',conversational:true};
           const policy=await mobile.policy(patient);
           const lost=typeof input.question==='string'&&/^(?:i am|i'm|im|i feel) lost\b/i.test(input.question.trim());
           if(explicitSos(input.question)||lost&&policy.autoSosOnLost){
@@ -135,7 +138,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
         }
         if(path==='/ask'&&/\b(?:image|images|picture|pictures|photo|photos)\b/i.test(input.question)){
           const picture=await imageMemory.pictureAnswer(patient,input.question);
-          if(picture){await mobile.sendImages(patient,picture.images);onInterim?.(picture);return picture;}
+          if(picture){if(!input.public_demo)await mobile.sendImages(patient,picture.images);onInterim?.(picture);return picture;}
         }
         const support = path === '/ask' ? supportSessions.respond(input.question, input.supportSession, `${patient}:${admin ? 'caregiver' : 'patient'}`) : null;
         if (support) {
@@ -242,18 +245,20 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
       }
       const key = req.header('X-AnchorCare-Key') || '';
       const admin = matches(key, adminKey);
-      const demoAccess=!key&&localDemoAccess(req,patient);
+      const publicGuest=publicMode&&!key;
+      const demoAccess=!key&&(localDemoAccess(req,patient)||publicGuest);
+      if(publicGuest&&!publicDemoRoute(req.method,req.path))return void res.status(403).json({error:'This action is private. The public demo only uses fictional memories.'});
       if (!adminKey && !companionKey) return void res.status(503).json({ error: 'Configure private AnchorCare access keys before using the memory integration' });
       if (!admin && !demoAccess && !matches(key, companionKey)){limits.take('auth-failed:'+req.ip,20);return void res.status(401).json({error:'Valid memory access key required'});}
       if(req.method==='POST'&&['/ask','/asks','/answer','/agent/turn','/agent/commit'].includes(req.path))limits.take('inference:'+req.path+':'+credentialBucket(key),req.path==='/agent/commit'?40:20);
       if(req.method==='POST'&&req.path==='/recall-images')limits.take('pictures:'+credentialBucket(key),40);
       if (req.method === 'GET' && req.path === '/status') {
-        return void res.json({ mode: store.mode, patient_id: patient, actor: admin ? 'caregiver' : 'patient', demoAutoLogin:demoAccess, timezone: cfg.timezone, geminiConfigured: Boolean(cfg.geminiKey), companionProvider:companion.provider, companionModel:companion.model, companionConfigured:companion.configured, contextProcessing: cfg.contextProcessing });
+        return void res.json({ mode: store.mode, patient_id: patient, actor: admin ? 'caregiver' : 'patient', demoAutoLogin:demoAccess,publicDemo:publicGuest, timezone: cfg.timezone, geminiConfigured: Boolean(cfg.geminiKey), companionProvider:companion.provider, companionModel:companion.model, companionConfigured:companion.configured, contextProcessing: cfg.contextProcessing });
       }
-      const input = { ...(req.method === 'GET' ? req.query : req.body), patient_id: patient };
+      const input = { ...(req.method === 'GET' ? req.query : req.body), patient_id: patient,public_demo:publicGuest };
       if(req.method==='POST'&&req.path.startsWith('/agent/session/')){
         limits.take('session:'+credentialBucket(key),30);const sid=String(input.session_id||'');
-        if(req.path==='/agent/session/start')return void res.json(await sessions.start(patient,input));
+        if(req.path==='/agent/session/start')return void res.json(await sessions.start(patient,publicGuest?{...input,inactivity_consent:false,camera_consent:false}:input));
         if(req.path==='/agent/session/pause')return void res.json(await sessions.pause(patient,sid));
         if(req.path==='/agent/session/activity')return void res.json(await sessions.activity(patient,sid)||{state:'stopped'});
         if(req.path==='/agent/session/presented')return void res.json(await sessions.presented(patient,sid));
@@ -341,7 +346,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
     }
   });
   let mobileRunning:Promise<any>|undefined;
-  const mobileTick=()=>{if(!mobileRunning)mobileRunning=sessions.tick().then(()=>mobile.tick()).then(()=>push.tick()).then(()=>agent.nightly()).catch(()=>console.error('Mobile dispatch unavailable')).finally(()=>{mobileRunning=undefined;});};
+  const mobileTick=()=>{if(!mobileRunning)mobileRunning=sessions.tick().then(()=>mobile.tick()).then(()=>push.tick()).then(()=>publicMode?undefined:agent.nightly()).catch(()=>console.error('Mobile dispatch unavailable')).finally(()=>{mobileRunning=undefined;});};
   const mobileTimer=setInterval(mobileTick,5000);
   const telegramTimer=setInterval(()=>{void telegramAgent.poll(patient);},5000);
   let running: Promise<any> | undefined;

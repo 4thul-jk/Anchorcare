@@ -131,6 +131,7 @@ export class ConversationAgent{
   return !!updated;
  }
  async commit(patient:string,input:any,signal?:AbortSignal){
+  if(input.public_demo&&(input.audio_base64||input.image_base64))throw new ApiError(403,'Original media retention is disabled in the public demo');
   const scope=this.scope(patient),turn=await this.service.store.one('agent_capture_turns',{...scope,_id:text(input.id,'id',100)});
   if(!turn)throw new ApiError(404,'Conversation turn not found');
   if(turn.state==='saved')return this.publicTurn(turn);
@@ -146,17 +147,17 @@ export class ConversationAgent{
     }
    }
    signal?.throwIfAborted();
-   const location=currentLocationReport(turn.transcript);
+   const publicOnly=input.public_demo===true,location=publicOnly?null:currentLocationReport(turn.transcript);
    if(location)await this.service.store.insert('agent_location_reports',{_id:hash([scope,turn._id,'location']),...scope,turnId:turn._id,sessionId:turn.sessionId,location,reportedAt:turn.recordedAt,storedAt:this.service.clock(),sourceType:'user_report',verifiedGps:false});
    const team=new TeamContract(this.service),life=new LifeRecords(this.service),outputs:any[]=[];
-   for(const identity of turn.introductions||[]){
+   for(const identity of (publicOnly?[]:turn.introductions||[])){
     const reportId='identity_'+hash([scope,turn._id,identity.name,identity.relationship]);let personId=null;
     if(identity.relationship){personId='reported_'+hash([scope,identity.name.toLowerCase(),identity.relationship.toLowerCase()]).slice(0,40);if(!await this.service.store.one('people',{...scope,_id:personId}))await this.service.addPerson({subjectId:patient,id:personId,name:identity.name,relationship:identity.relationship});}
     await this.service.store.insert('agent_identity_reports',{_id:reportId,...scope,turnId:turn._id,sessionId:turn.sessionId,...identity,personId,recordedAt:turn.recordedAt,storedAt:this.service.clock(),sourceType:'user_report',identityVerified:false,photoLinked:false});
     const record=await life.addPersonal({patient_id:patient,id:reportId,kind:personId?'person':'fact',...(personId?{person_id:personId}:{}),title:'Reported introduction: '+identity.name,original_text:personId?identity.quote:'Someone in the conversation introduced themselves: '+identity.quote+' The speaker identity and relationship to the patient are unconfirmed.',source_type:'user_report'});await this.makeAvailable(patient,'personal_records',record.record._id,identity.quote,record.created);outputs.push({category:'reported_identity',collection:'personal_records',id:record.record._id,status:'available_report',name:identity.name,relationship:identity.relationship});
    }
 
-   for(let i=0;i<turn.items.length;i++){
+   for(let i=0;i<(publicOnly?0:turn.items.length);i++){
     const item=turn.items[i];if((turn.introductions||[]).some((entry:any)=>entry.quote===item.quote))continue;const recordId='agent_'+turn._id.slice(0,40)+'_'+i;
     if(item.category==='location_report'&&location){outputs.push({category:'location_report',collection:'agent_location_reports',id:hash([scope,turn._id,'location']),status:'available_report'});continue;}
     if(item.category==='personal'){
@@ -183,7 +184,7 @@ export class ConversationAgent{
    const feelingUnwell=/\b(?:not feeling (?:very )?well|feel(?:ing)? (?:unwell|ill|sick))\b/i.test(turn.transcript);
    const intro=(turn.introductions||[])[0];
    const noSpeech=noClearSpeech(turn.transcript),chatOnly=smallTalk(turn.transcript);
-   const acknowledgement=noSpeech?'I did not catch any clear words. Please try again.':chatOnly?(/^(?:okay|ok)[.!?, ]*$/i.test(turn.transcript)?"Okay. I'm here when you need me.":/^(?:thanks|thank you)/i.test(turn.transcript)?"You're welcome. I'm here whenever you'd like to talk.":/^(?:bye|goodbye)/i.test(turn.transcript)?"Take care. I'm here whenever you need me.":"Hello! How are you doing today?"):careResponse?careResponse.answer:intro?`I have remembered the introduction: ${intro.name}`+(intro.relationship?`, described as your ${intro.relationship}.`:`. How is ${intro.name} related to you?`):feelingUnwell?"I'm sorry you're feeling unwell. Can you tell me a little more about how you're feeling?":location?`I have remembered that you told me you were at ${location}. If you ask later, I can tell you when you said it.`:outputs.some(o=>o.status==='available_report')?'Thank you for telling me. I have saved what you shared, so we can come back to it later.':outputs.length?'I have saved your report. This detail needs your caregiver to review it.':'I have kept your words in our conversation. What would you like to talk about?';
+   const acknowledgement=publicOnly&&turn.items.length?'I have kept that in this conversation. Shared demo memories stay fictional.':noSpeech?'I did not catch any clear words. Please try again.':chatOnly?(/^(?:okay|ok)[.!?, ]*$/i.test(turn.transcript)?"Okay. I'm here when you need me.":/^(?:thanks|thank you)/i.test(turn.transcript)?"You're welcome. I'm here whenever you'd like to talk.":/^(?:bye|goodbye)/i.test(turn.transcript)?"Take care. I'm here whenever you need me.":"Hello! How are you doing today?"):careResponse?careResponse.answer:intro?`I have remembered the introduction: ${intro.name}`+(intro.relationship?`, described as your ${intro.relationship}.`:`. How is ${intro.name} related to you?`):feelingUnwell?"I'm sorry you're feeling unwell. Can you tell me a little more about how you're feeling?":location?`I have remembered that you told me you were at ${location}. If you ask later, I can tell you when you said it.`:outputs.some(o=>o.status==='available_report')?'Thank you for telling me. I have saved what you shared, so we can come back to it later.':outputs.length?'I have saved your report. This detail needs your caregiver to review it.':'I have kept your words in our conversation. What would you like to talk about?';
    const saved=await this.service.store.update('agent_capture_turns',{...scope,_id:turn._id},{state:'saved',noSpeech,memorySaved:outputs.some(o=>o.collection!=='agent_capture_proposals'),memoryDecision:chatOnly?'conversation_only':outputs.length?'personal_report':'conversation_only',acknowledgement,careResponse,contactOfferId:careResponse?.contactOfferId||null,...(!['question','mixed'].includes(turn.intent)?{lastAnswer:acknowledgement,answeredAt:this.service.clock()}:{}),outputs,mediaIds,visualNote,locationReport:location?{location,reportedAt:turn.recordedAt,verifiedGps:false}:null,cameraConsent:input.camera_consent===true,audioRetentionConsent:input.audio_consent===true,savedAt:this.service.clock()});
    await this.service.audit(scope,'agent_turn_saved',turn._id,{intent:turn.intent,records:outputs.length,media:mediaIds.length});
    return this.publicTurn(saved);

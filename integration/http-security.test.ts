@@ -1,3 +1,4 @@
+import {validatePublicDemo,publicDemoRoute} from './demo-access';
 import test from 'node:test';import assert from 'node:assert/strict';
 import express from 'express';
 import {RequestLimits,validateRequestObject,credentialBucket,installHttpSecurity} from './http-security';
@@ -25,4 +26,13 @@ test('demo access is explicit, loopback only, fixed patient and disabled in prod
  assert.equal(localDemoAccess({...req,hostname:'evil.example'},'demo-person-001'),false);
  assert.equal(localDemoAccess({...req,socket:{remoteAddress:'10.0.0.2'}},'demo-person-001'),false);
  assert.equal(localDemoAccess(req,'real-patient'),false);process.env.NODE_ENV='production';assert.equal(localDemoAccess(req,'demo-person-001'),false);
+});
+
+
+test('key-free public access fails closed on private databases and blocks sensitive actions',t=>{
+ const old=process.env.PUBLIC_PATIENT_DEMO;process.env.PUBLIC_PATIENT_DEMO='true';t.after(()=>{if(old===undefined)delete process.env.PUBLIC_PATIENT_DEMO;else process.env.PUBLIC_PATIENT_DEMO=old;});
+ assert.throws(()=>validatePublicDemo({mode:'mongodb',database:'engram',householdId:'anchorcare-demo'},'demo-person-001'));
+ assert.equal(validatePublicDemo({mode:'mongodb',database:'muse_public_demo',householdId:'muse-public-demo'},'demo-person-001'),true);
+ for(const path of ['/admin/storage','/location','/agent/capture','/agent/snapshot','/mobile/sos','/admin/people'])assert.equal(publicDemoRoute('POST',path),false);
+ assert.equal(publicDemoRoute('GET','/status'),true);assert.equal(publicDemoRoute('POST','/agent/turn'),true);
 });
