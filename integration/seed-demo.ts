@@ -40,6 +40,7 @@ try {
     if (created.created) await life.review({ patient_id: patient, collection: 'personal_records', id: recordId, status: 'approved' });
   }
   for (const [suffix, kind, title, original_text] of [
+    ['identity', 'fact', 'Patient name and identity', 'The patient using this memory companion is named Alex Mercer. His preferred name is Alex.'],
     ['tea', 'preference', 'Tea preference', 'Alex prefers Earl Grey tea without sugar.'],
     ['music', 'preference', 'Favourite music', 'Alex enjoys quiet piano music.'],
     ['garden', 'fact', 'Familiar interest', 'Alex enjoys looking after rosemary plants in the courtyard garden.']
@@ -84,7 +85,7 @@ try {
   ];
   for (const plan of plans) if (!await store.one('plans', { ...scope, _id: plan.id }) && new Date(plan.expiresAt) > now) await service.createPlan({ ...plan, subjectId: patient });
   console.log(JSON.stringify({ passed: true, seededAt: new Date().toISOString(), scenarioId, patient_id: patient, timezone: cfg.timezone, scenarioDay,
-    people: 3, personalRecords: 6, episodes: episodeIds.length, dailyLogs: events.length, approvedEpisodes: 8, draftEpisodes: 1,
+    people: 3, personalRecords: 7, episodes: episodeIds.length, dailyLogs: events.length, approvedEpisodes: 8, draftEpisodes: 1,
     visitScheduledFor: visitStart.toISOString(), plans: plans.map(p => p.id), repeatedRunPreservesReviewAndSchedule: true,
     note: 'Entirely fictional. No actual patient data or medicine ingestion confirmation. Photos are not supplied.' }, null, 2));
 } catch (error: any) {

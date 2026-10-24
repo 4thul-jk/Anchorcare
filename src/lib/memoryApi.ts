@@ -7,6 +7,6 @@ export async function memoryApi(key: string, path: string, payload?: unknown, si
     signal: signal ? AbortSignal.any([signal, timeout]) : timeout
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Memory service unavailable');
+  if (!response.ok) throw Object.assign(new Error(data.error === 'All requested memory sections unavailable' ? 'Saved memories are temporarily unreachable. Check the Atlas network access list and database connection, then retry. Your access key may still be valid.' : data.error || 'Memory service unavailable'), { status: response.status });
   return data;
 }

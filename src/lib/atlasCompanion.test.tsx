@@ -15,3 +15,10 @@ test('API failures are surfaced rather than falling back to browser answers', as
   try { await assert.rejects(memoryApi('test-key', '/ask', { question: 'Who visited?' }), /Memory temporarily unavailable/); }
   finally { globalThis.fetch = original; }
 });
+
+test('database outage explains connectivity rather than implying incorrect credentials', async () => {
+ const original = globalThis.fetch;
+ globalThis.fetch = (async () => ({ok:false,json:async()=>({error:'All requested memory sections unavailable'})})) as any;
+ try { await assert.rejects(memoryApi('test-key','/ask',{question:'my name'}), /Atlas network access list/); }
+ finally {globalThis.fetch=original;}
+});
