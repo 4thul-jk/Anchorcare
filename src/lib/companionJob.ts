@@ -16,7 +16,7 @@ export async function runCompanionJob(key:string,payload:any,options:{signal:Abo
   if(snapshot.state==='failed')throw Error(snapshot.error||'Reply unavailable. Please try again.');
   if(snapshot.state==='cancelled')throw new DOMException('Cancelled','AbortError');
   if(snapshot.interim)options.onInterim?.(snapshot.interim);
-  options.onProgress(snapshot.phase==='retrying'?'The connection is slow. I am retrying automatically...':snapshot.phase==='generating'?'I found saved information and am preparing your answer...':snapshot.phase==='verifying'?'I am checking that the answer matches your saved information...':'I am checking your saved information...');
+  options.onProgress(snapshot.phase==='searching_web'?'I am looking that up on the web...':snapshot.phase==='retrying'?'The connection is slow. I am retrying automatically...':snapshot.phase==='generating'?'I found saved information and am preparing your answer...':snapshot.phase==='verifying'?'I am checking that the answer matches your saved information...':'I am checking your saved information...');
   await wait(options.pollMs??1000,signal);
  }
 }

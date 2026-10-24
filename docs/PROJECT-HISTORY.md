@@ -208,3 +208,8 @@ Removed the universal Saved message after every turn. Standalone greetings/thank
 ## 2026-10-25 — Natural family recall and appearance follow-ups
 
 Fixed the demonstrated daughter-look/name-and-image sequence losing its referent. Appearance requests use approved photo recall, and named-person queries return the saved relationship without appending unrelated patient identity. A unique near-name prefix such as Sara/Sarah prompts confirmation rather than an identity assertion. Picture replies explain the relationship conversationally, preserving user-report attribution. Source evidence remains available separately. 155 tests and type checks passed, including the exact reported phrases.
+
+
+## 2026-10-25 — General Gemini web help and Maps handoff
+
+Added public/general/directions routing alongside private recall, Gemini Google Search tools with provider source citations, friendly failure handling, labelled web-source UI and explicit-place Maps route links. Only current public questions enter search; private memory/history/location are not attached. Voice input uses the same path. Live Argon Tower Bridge test returned four citations in 7783 ms. 159 tests and type checks passed. See GENERAL-HELP.md for limits, API behaviour and demo prompts.

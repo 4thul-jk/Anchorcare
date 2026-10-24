@@ -1,3 +1,4 @@
+import {GeneralHelp} from './general-help';
 import {describeStorage} from './storage-catalog';
 import {ConversationSessions} from './conversation-session';
 import {missingMemoryReply} from './missing-memory';
@@ -54,6 +55,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
   const team = new TeamContract(service), triggers = new TriggerContract(service);
   const life = new LifeRecords(service), context = new MemoryContext(service);
   const ledger = new AtlasLedger(service);
+  const generalHelp=new GeneralHelp();
   const agent = new ConversationAgent(service,options.classifyTurn);
   const supportSessions = new SupportSessions();
   const capabilityHooks = new CapabilityHooks(service);
@@ -148,6 +150,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
         }
         const namedPerson=path==='/ask'?namedPersonQuestion(input.question):null;
         if(namedPerson){const request={patient_id:patient,query:input.question,include:['personal_records'],limit:50};onContext?.(request);const identity=namedPersonAnswer(await context.retrieve(request),namedPerson);if(identity)return identity;}
+        if(path==='/ask'){const general=await agent.generalRequest(patient,input.agent_turn_id,input.question);if(general){onProgress?.('searching_web');return generalHelp.answer(general.question,general.kind,signal);}}
         const quickRequest=path==='/ask'?quickVisitRequest(input.question,cfg.timezone,service.clock()):null;
         let selected: any=quickRequest?{request:quickRequest,routing:{source:'approved_schedule_shortcut',tool:'retrieve_memory',sections:quickRequest.include}}:undefined;
         // Read approved context directly. Let the answer model interpret phrasing;

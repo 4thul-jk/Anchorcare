@@ -1,0 +1,19 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {GeneralHelp,generalHelpKind,webEvidence} from './general-help';
+process.env.COMPANION_PROVIDER='gemini';process.env.GEMINI_API_KEY='synthetic-web-test';
+test('general help excludes personal and care queries, even with a model routing hint',()=>{
+ for(const q of ['Who is my daughter?','What is my name?','What is my medicine?','What is Alex address?','I am lost'])assert.equal(generalHelpKind(q,'general'),null);
+ assert.equal(generalHelpKind('What is photosynthesis?'),'general');assert.equal(generalHelpKind('Tell me a joke'),'general');assert.equal(generalHelpKind('Directions from Guildford station to Guildford castle'),'directions');
+});
+test('web call contains only current question and sources come from provider annotations',async()=>{
+ let sent:any;const helper=new GeneralHelp(async()=>({interactions:{create:async(params:any)=>{sent=params;return {output_text:'A public answer.',steps:[{content:[{type:'text',annotations:[{type:'url_citation',url:'https://example.org/fact',title:'Evidence'}]}]}]};}}})as any);
+ const answer=await helper.answer('What is photosynthesis?','general');assert.equal(sent.input,'What is photosynthesis?');assert.deepEqual(sent.tools,[{type:'google_search'}]);assert.equal(sent.store,false);assert.equal('previous_interaction_id'in sent,false);assert.equal(answer.responseSource,'web');assert.equal(answer.sources.length,1);
+});
+test('no source or provider failure cannot be presented as a verified web answer',async()=>{
+ const helper=new GeneralHelp(async()=>({interactions:{create:async()=>({output_text:'Unverified fact'})}})as any);assert.equal((await helper.answer('What is the weather in London?','general')).responseSource,'web_unavailable');
+ assert.equal(webEvidence({type:'url_citation',url:'javascript:alert(1)'}).sources.length,0);
+});
+test('directions use explicit origin/destination and nearby requests ask for location without a model call',async()=>{
+ const helper=new GeneralHelp(async()=>{throw Error('Do not send anything');});
+ const route=await helper.answer('Directions from Guildford station to Guildford castle','directions');assert.match(route.mapUrl!,/origin=Guildford%20station&destination=Guildford%20castle/);assert.doesNotMatch(route.answer,/I know where you are/);
+ assert.equal((await helper.answer('weather near me','general')).responseSource,'location_needed');
+});
