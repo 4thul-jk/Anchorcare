@@ -1,0 +1,148 @@
+[
+  {
+    "$source": {
+      "connectionName": "engramAtlas",
+      "db": "engram",
+      "coll": "context_events",
+      "config": {
+        "fullDocument": "updateLookup"
+      }
+    }
+  },
+  {
+    "$match": {
+      "operationType": "insert",
+      "fullDocument.type": "place_check_in"
+    }
+  },
+  {
+    "$replaceRoot": {
+      "newRoot": "$fullDocument"
+    }
+  },
+  {
+    "$match": {
+      "_id": {
+        "$type": "string"
+      },
+      "householdId": {
+        "$type": "string"
+      },
+      "subjectId": {
+        "$type": "string"
+      },
+      "placeId": {
+        "$type": "string"
+      },
+      "observedAt": {
+        "$type": "date"
+      }
+    }
+  },
+  {
+    "$lookup": {
+      "from": {
+        "connectionName": "engramAtlas",
+        "db": "engram",
+        "coll": "plans"
+      },
+      "let": {
+        "household": "$householdId",
+        "subject": "$subjectId",
+        "place": "$placeId",
+        "observed": "$observedAt"
+      },
+      "pipeline": [
+        {
+          "$match": {
+            "$expr": {
+              "$and": [
+                {
+                  "$eq": [
+                    "$householdId",
+                    "$$household"
+                  ]
+                },
+                {
+                  "$eq": [
+                    "$subjectId",
+                    "$$subject"
+                  ]
+                },
+                {
+                  "$eq": [
+                    "$placeId",
+                    "$$place"
+                  ]
+                },
+                {
+                  "$eq": [
+                    "$triggerType",
+                    "context"
+                  ]
+                },
+                {
+                  "$eq": [
+                    "$reviewStatus",
+                    "approved"
+                  ]
+                },
+                {
+                  "$eq": [
+                    "$eventStatus",
+                    "planned"
+                  ]
+                },
+                {
+                  "$lte": [
+                    "$eventStart",
+                    "$$observed"
+                  ]
+                },
+                {
+                  "$gt": [
+                    "$expiresAt",
+                    "$$observed"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "$limit": 1
+        }
+      ],
+      "as": "matchingPlans"
+    }
+  },
+  {
+    "$match": {
+      "matchingPlans.0": {
+        "$exists": true
+      }
+    }
+  },
+  {
+    "$set": {
+      "status": "pending",
+      "processingPath": "atlas_stream_processing",
+      "pipelineVersion": "engram-context-v1"
+    }
+  },
+  {
+    "$unset": "matchingPlans"
+  },
+  {
+    "$merge": {
+      "into": {
+        "connectionName": "engramAtlas",
+        "db": "engram",
+        "coll": "assistance_candidates"
+      },
+      "on": "_id",
+      "whenMatched": "keepExisting",
+      "whenNotMatched": "insert"
+    }
+  }
+]
