@@ -1,3 +1,4 @@
+import {describeStorage} from './storage-catalog';
 import {ConversationSessions} from './conversation-session';
 import {missingMemoryReply} from './missing-memory';
 import {ConversationAgent,classifyInput} from './conversation-agent';
@@ -254,6 +255,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
         try{return void res.json(req.path==='/agent/turn'?await agent.turn(patient,input,stop.signal):await agent.commit(patient,input,stop.signal));}
         finally{clearTimeout(timer);res.off('close',disconnected);}
       }
+      if(req.method==='GET'&&req.path==='/admin/storage'){if(!admin)return void res.status(403).json({error:'Caregiver access required'});return void res.json({collections:store.mode==='mongodb'?await describeStorage((store as any).db):[]});}
       if(req.method==='GET'&&req.path==='/admin/agent/session-reports'){if(!admin)return void res.status(403).json({error:'Caregiver access required'});return void res.json({reports:await store.list('agent_session_reports',service.scope(patient),{createdAt:-1},20)});}
       if(req.method==='GET'&&req.path==='/agent/history')return void res.json({turns:await agent.history(patient,String(input.session_id||''))});
       const captureAsset=req.path.match(/^\/admin\/agent\/media\/([a-zA-Z0-9_-]+)$/);

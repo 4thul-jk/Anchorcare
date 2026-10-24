@@ -24,7 +24,7 @@ test('unified turn routes retain auth, draft separation, journal review and medi
  const capture=await(await call('/agent/capture',{session_id:'http_voice',turn_id:'clip',mime_type:'audio/wav',audio_base64:'AAAA',audio_consent:true})).json();assert.equal(capture.stored,true);assert.ok(capture.captureId);
  assert.equal((await call('/agent/snapshot',{session_id:'http_voice',frame_id:'f',camera_consent:true,image_base64:'AAAA'})).status,400);
  assert.equal((await call('/agent/session/pause',{session_id:'http_voice'})).status,200);
- const report=await(await call('/agent/session/finish',{session_id:'http_voice'})).json();assert.equal(report.reviewStatus,'draft');assert.equal(report.analysisStatus,'empty');
+ const report=await(await call('/agent/session/finish',{session_id:'http_voice'})).json();assert.equal(report.reviewStatus,'auto_saved');assert.equal(report.analysisStatus,'empty');
  assert.equal((await call('/admin/agent/session-reports')).status,403);
  const reports=await(await call('/admin/agent/session-reports',undefined,'synthetic-agent-admin')).json();assert.equal(reports.reports.length,1);
 

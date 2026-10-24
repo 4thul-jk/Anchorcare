@@ -178,3 +178,8 @@ Gemini classification now includes a current-turn quoted care-assistance hint (n
 Replaced browser-transcript dependency with direct Gemini audio turns and save-before-inference private captures; Stop flushes final speech. Added visible hardware/session status, separately consented periodic still frames, unverified end-session reports, and server-driven 30-minute check-in with a two-minute delivered response window and existing policy-gated caretaker hook. Disconnected pages do not trigger an alert. No teammate schemas changed. See GEMINI-VOICE-SESSIONS.md for APIs, limits and backtracking details. 150 application tests, types and build passed. Live fictional WAV -> Argon exact transcription (9915 ms) -> Atlas audio, transcript, report and draft session summary passed. Actual microphone/camera and real calls were not tested. Current demo allows SOS alerts but liveCalls is false.
 
 Live verification checkpoint recorded at 2026-10-24 21:34:24 UTC (25 October in Asia/Kolkata): fictional WAV persisted to Atlas and transcribed by gemini-4-argon; no microphone/camera use or external contact.
+
+
+## 2026-10-25 — Storage clarity and non-destructive cleanup
+
+User clarified that the perceived UI error was the approval wording. Session reports now explicitly auto-save (notVerified remains true), and readable report rendering hides raw Markdown/technical IDs. Supporting evidence collapses by default. Added caregiver-only collection guide with human-readable names and counts. Inspected engram/test/internal-search databases; all shared/required collections preserved. Backed up and removed exactly four expired demo pairing-code records at 2026-10-24 21:49 UTC. See DATABASE-ORGANISATION.md; teammate schemas and database names remain unchanged.

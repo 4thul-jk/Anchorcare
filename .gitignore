@@ -32,3 +32,7 @@ adapter/.checkpoint.json
 # Logs
 logs/
 *.log
+
+# Private database cleanup backups and local inspection scripts
+.private-backups/
+tmp/

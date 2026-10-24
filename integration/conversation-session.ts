@@ -48,7 +48,7 @@ export class ConversationSessions{
   const frames=await this.service.store.list('agent_capture_assets',{...scope,sessionId:session,kind:'image'},{createdAt:1},12);
   let report='The conversation has ended. A generated session summary is unavailable. Your saved words and snapshots remain available for caregiver review.',analysisStatus='unavailable';
   try{if(turns.length||frames.length){report=await (this.analyser||this.analyse.bind(this))(turns.slice(0,50).reverse(),frames,patient);analysisStatus='complete';}else{report='No completed conversation turns or snapshots were captured in this session.';analysisStatus='empty';}}catch{/* Raw evidence is already persisted; retry finish later. */}
-  const result={_id:row._id+'_report',...scope,sessionId:session,report,analysisStatus,reviewStatus:'draft',notVerified:true,createdAt:this.service.clock(),turnIds:turns.slice(0,50).map((t:any)=>t._id),snapshotIds:frames.map((f:any)=>f._id),truncated:turns.length>50};
+  const result={_id:row._id+'_report',...scope,sessionId:session,report,analysisStatus,reviewStatus:'auto_saved',notVerified:true,createdAt:this.service.clock(),turnIds:turns.slice(0,50).map((t:any)=>t._id),snapshotIds:frames.map((f:any)=>f._id),truncated:turns.length>50};
   if(old)await this.service.store.update('agent_session_reports',{...scope,_id:old._id},result);else await this.service.store.insert('agent_session_reports',result);
   return result;
  }

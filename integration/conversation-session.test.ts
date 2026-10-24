@@ -34,6 +34,6 @@ test('snapshots need consent and are scoped; stopping saves a draft report and d
  const image=Buffer.from('ffd8ffc00011080001000103011100021100031100ffd9','hex').toString('base64');
  await assert.rejects(f.agent.captureSnapshot('p',{session_id:'frames',frame_id:'f1',image_base64:image}));
  const frame=await f.agent.captureSnapshot('p',{session_id:'frames',frame_id:'f1',image_base64:image,camera_consent:true});await assert.rejects(f.agent.media('other',frame.assetId));
- const report=await f.sessions.finish('p','frames');assert.equal(report.reviewStatus,'draft');assert.equal(report.snapshotIds.length,1);assert.equal(report.analysisStatus,'complete');assert.equal((await f.sessions.status('p','frames')).monitorEnabled,false);
+ const report=await f.sessions.finish('p','frames');assert.equal(report.reviewStatus,'auto_saved');assert.equal(report.snapshotIds.length,1);assert.equal(report.analysisStatus,'complete');assert.equal((await f.sessions.status('p','frames')).monitorEnabled,false);
  assert.equal((await f.sessions.finish('p','frames'))._id,report._id);assert.equal((await f.store.list('agent_session_reports')).length,1);
 });
