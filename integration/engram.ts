@@ -1,4 +1,5 @@
 import {TelegramAgent} from './team-agents/telegramAgent';
+import {validJudgeInvite,judgeCookie} from './judge-access';
 import {CaregiverAgent} from './team-agents/caregiverAgent';
 import {DeviceLocation} from './device-location';
 import {MUSE_PERSONALITY} from './muse-personality';
@@ -243,7 +244,14 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
         }
         return void res.status(404).json({error:'Device route not found'});
       }
-      const key = req.header('X-AnchorCare-Key') || '';
+      if(req.method==='POST'&&req.path==='/judge/enter'){
+        limits.take('judge-enter:'+req.ip,10);
+        if(!publicMode||!validJudgeInvite(String(req.body.invite||''),companionKey||''))return void res.status(403).json({error:'Judge invitation is invalid or expired'});
+        res.setHeader('Set-Cookie',`muse_judge=${req.body.invite}; HttpOnly; Secure; SameSite=Strict; Path=/api/engram; Max-Age=86400`);
+        return void res.json({accepted:true});
+      }
+      const judge=publicMode&&validJudgeInvite(judgeCookie(req.headers.cookie),companionKey||'');
+      const key = req.header('X-AnchorCare-Key') || (judge?companionKey:'') || '';
       const admin = matches(key, adminKey);
       const publicGuest=publicMode&&!key;
       const demoAccess=!key&&(localDemoAccess(req,patient)||publicGuest);
@@ -253,9 +261,15 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
       if(req.method==='POST'&&['/ask','/asks','/answer','/agent/turn','/agent/commit'].includes(req.path))limits.take('inference:'+req.path+':'+credentialBucket(key),req.path==='/agent/commit'?40:20);
       if(req.method==='POST'&&req.path==='/recall-images')limits.take('pictures:'+credentialBucket(key),40);
       if (req.method === 'GET' && req.path === '/status') {
-        return void res.json({ mode: store.mode, patient_id: patient, actor: admin ? 'caregiver' : 'patient', demoAutoLogin:demoAccess,publicDemo:publicGuest, timezone: cfg.timezone, geminiConfigured: Boolean(cfg.geminiKey), companionProvider:companion.provider, companionModel:companion.model, companionConfigured:companion.configured, contextProcessing: cfg.contextProcessing });
+        return void res.json({ mode: store.mode, patient_id: patient, actor: admin ? 'caregiver' : 'patient', demoAutoLogin:demoAccess||judge,publicDemo:publicGuest,judgeDemo:judge, timezone: cfg.timezone, geminiConfigured: Boolean(cfg.geminiKey), companionProvider:companion.provider, companionModel:companion.model, companionConfigured:companion.configured, contextProcessing: cfg.contextProcessing });
       }
       const input = { ...(req.method === 'GET' ? req.query : req.body), patient_id: patient,public_demo:publicGuest };
+      if(req.method==='POST'&&req.path==='/judge/reminder'){
+        if(!judge)return void res.status(403).json({error:'Judge session required'});
+        limits.take('judge-reminder:'+req.ip,2);
+        const now=Date.now(),plan=await service.createPlan({subjectId:patient,id:'judge_'+randomUUID(),kind:'photo_album',triggerType:'time',dueAt:new Date(now+30000).toISOString(),eventStart:new Date(now+30000).toISOString(),expiresAt:new Date(now+600000).toISOString()});
+        return void res.json({dueAt:plan.dueAt,message:'A fictional photo-album reminder is scheduled in 30 seconds. Keep this page open.'});
+      }
       if(req.method==='POST'&&req.path.startsWith('/agent/session/')){
         limits.take('session:'+credentialBucket(key),30);const sid=String(input.session_id||'');
         if(req.path==='/agent/session/start')return void res.json(await sessions.start(patient,publicGuest?{...input,inactivity_consent:false,camera_consent:false}:input));

@@ -1,4 +1,15 @@
 import {validatePublicDemo,publicDemoRoute} from './demo-access';
+import {judgeInvite,validJudgeInvite,judgeCookie} from './judge-access';
+test('judge invitations are signed, expiring, bounded and extracted from private cookies',()=>{
+ const now=Date.now(),token=judgeInvite('test-secret',now+60000);
+ assert.equal(validJudgeInvite(token,'test-secret',now),true);
+ assert.equal(validJudgeInvite(token,'different-secret',now),false);
+ assert.equal(validJudgeInvite(token,'test-secret',now+60001),false);
+ assert.equal(validJudgeInvite(token+'x','test-secret',now),false);
+ assert.equal(validJudgeInvite(judgeInvite('test-secret',now+26*3600000),'test-secret',now),false);
+ assert.equal(judgeCookie('unrelated=x; muse_judge='+token),token);
+ assert.equal(judgeCookie(undefined),'');
+});
 import test from 'node:test';import assert from 'node:assert/strict';
 import express from 'express';
 import {RequestLimits,validateRequestObject,credentialBucket,installHttpSecurity} from './http-security';

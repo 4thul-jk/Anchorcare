@@ -32,7 +32,12 @@ export function AtlasCompanionView({ accessKey, onAccessKeyChange }: { accessKey
   useEffect(()=>{
     if(accessKey){setAutoConnecting(false);return;}
     const stop=new AbortController();setAutoConnecting(true);
-    void memoryApi('', '/status',undefined,stop.signal).then(data=>{if(!stop.signal.aborted)setSession(data);}).catch(()=>{}).finally(()=>{if(!stop.signal.aborted)setAutoConnecting(false);});
+    const invitation=new URLSearchParams(window.location.hash.slice(1)).get('judge');
+    const connect=async()=>{
+      if(invitation){await memoryApi('','/judge/enter',{invite:invitation},stop.signal);window.history.replaceState(null,'',window.location.pathname+window.location.search);}
+      return memoryApi('', '/status',undefined,stop.signal);
+    };
+    void connect().then(data=>{if(!stop.signal.aborted)setSession(data);}).catch(e=>{if(!stop.signal.aborted)setError(e.message);}).finally(()=>{if(!stop.signal.aborted)setAutoConnecting(false);});
     return()=>stop.abort();
   },[accessKey]);
   useEffect(() => {
@@ -94,6 +99,7 @@ export function AtlasCompanionView({ accessKey, onAccessKeyChange }: { accessKey
     </form>}
     {error && <p role="alert" className="bg-red-50 text-red-800 p-4 rounded-lg">{error}</p>}
     {session && <>
+      {session.judgeDemo&&<aside className="rounded-xl border bg-green-50 p-4 space-y-2"><h2 className="font-semibold">Judge testing workspace</h2><p>Fictional Alex Mercer. Memory saving, voice, pictures and optional camera/location are enabled. Please use invented information only. Judges share this fictional workspace. Calls and external notifications require a separately connected receiver; this is not an emergency service.</p><p>Try: “My favourite flower is a sunflower”, then “What is my favourite flower?”; “Show me my daughter”; “Who is my physiotherapist?” Stop the conversation to generate its report.</p><button className={button} disabled={busy} onClick={()=>{setBusy(true);void memoryApi('','/judge/reminder',{}).then(d=>setReminderNotice(d.message)).catch(e=>setError(e.message)).finally(()=>setBusy(false));}}>Test a reminder in 30 seconds</button></aside>}
       <p className="text-sm text-slate-500">{session.demoAutoLogin?'Demo patient  -  Connected':session.mode === 'mongodb' ? 'Access key accepted  -  Atlas mode' : 'Local test memory'}  -  {session.patient_id}</p>
       <ConversationAgentPanel publicDemo={!!session.publicDemo} accessKey={accessKey} onQuestion={(question,turnId)=>submitQuestion(question,turnId)} visualContent={<section aria-label="Memory picture screen" className="memory-picture-screen"><div className="picture-screen-heading"><ImageIcon size={19} aria-hidden="true"/><h3>Pictures to help you remember</h3>{pictures.length>0&&<span>{pictures.length} saved picture{pictures.length!==1?'s':''}</span>}</div>{pictures.length?<div className="grid md:grid-cols-2 gap-4">{pictures.map(image=><SavedMemoryImage key={image._id} image={image} accessKey={accessKey}/>)}</div>:<div className="picture-screen-empty"><ImageIcon size={38} strokeWidth={1.3} aria-hidden="true"/><p>Your saved pictures will appear here.</p><span>Try “Show me my daughter” or ask about a memory.</span></div>}</section>}/>
       <details className="rounded-xl border p-4"><summary className="cursor-pointer">Direct memory lookup</summary>
