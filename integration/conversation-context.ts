@@ -1,6 +1,8 @@
 import {normaliseRecallQuery} from './query-language';
 export function isConversationalRequest(text:string){return /^(?:i (?:want|need|would like) to (?:remember|see|know)|(?:please )?(?:show|tell|remind|help)\b|yes(?: please)?[.! ]*$|(?:no(?: thanks)?|not now|please do)[.! ]*$)/i.test(text.trim());}
 export function resolveRecallQuery(original:string,proposed:unknown,history:any[]){
+ const relation=normaliseRecallQuery(original).match(/\b(daughter|son|wife|husband|mother|father|sister|brother)\b/);
+ if(relation&&/\b(looks?|appearance|picture|photo|image)\b/i.test(original)&&!/\b(visit|coming|when|call|contact)\b/i.test(original))return {query:'Show me a picture of my '+relation[1],unresolved:false};
  const prior=history.map(t=>[t.transcript,t.recallQuery,t.lastAnswer].filter(Boolean).join(' ')).join(' ');
  const words=(v:string)=>normaliseRecallQuery(v).match(/[\p{L}\p{N}]+/gu)||[];
  const allowed=new Set(words(original+' '+prior+' show see picture image photo remember who is what about me my the please tell more help would like a of your to do did can you'));
@@ -9,8 +11,9 @@ export function resolveRecallQuery(original:string,proposed:unknown,history:any[
   const newAction=/\b(call|contact|message|alert|notify|sos)\b/i.test(proposed)&&!/\b(call|contact|message|alert|notify|sos)\b/i.test(original);
   if(safeWords&&proposed.trim().toLowerCase()!==original.trim().toLowerCase()&&!newAction&&!/\b(her|him|them|she|he)\b/i.test(proposed))return {query:proposed.trim(),unresolved:false};
  }
+ const implicitPicture=/^(?:(?:maybe|please|yes)\s+)?(?:the\s+)?(?:name and (?:image|picture|photo)|(?:image|picture|photo)(?: please)?)[.!? ]*$/i.test(original.trim());
  const pronoun=/\b(her|him|them|she|he)\b/i.test(original)||/^(?:please )?(?:tell me more|what about that|and then)[.! ]*$/i.test(original);
- if(pronoun){
+ if(pronoun||implicitPicture){
   for(const turn of [...history].reverse()){
    const roles=[...new Set((normaliseRecallQuery(turn.recallQuery||turn.transcript||'').match(/\b(daughter|son|wife|husband|mother|father|sister|brother|caregiver|physiotherapist)\b/g)||[]))];
    if(roles.length>1)return {query:original,unresolved:true};

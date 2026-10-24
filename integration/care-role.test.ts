@@ -1,3 +1,4 @@
+import {namedPersonQuestion,namedPersonAnswer} from './care-role';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {careRoleQuestion,careRoleAnswer} from './care-role';
 const record={_id:'david',person:{name:'David Lee',relationship:'physiotherapist'},originalText:'David Lee is Alex Mercer’s physiotherapist.'};
@@ -29,4 +30,10 @@ test('family questions explain the approved relationship in plain words without 
 test('new automatically available relationship reports remain attributed to the user',()=>{
  const data={sections:{personal_records:{complete:true,status:'available',records:[{_id:'new',sourceType:'user_report',originalText:'Maya is my daughter.'}]}}};
  const result=careRoleAnswer(data,'daughter');assert.equal(result.status,'answered');assert.match(result.answer,/You told me/);assert.match(result.answer,/Maya/);assert.equal(result.claims[0].citations[0].recordId,'new');
+});
+
+
+test('named family lookup explains the relationship without appending the patient identity',()=>{
+ const context={sections:{personal_records:{complete:true,records:[{_id:'daughter',originalText:'Sarah Mercer is Alex Mercer daughter.',sourceType:'caregiver_report',person:{id:'sarah',name:'Sarah Mercer',relationship:'daughter'}},{_id:'patient',originalText:'Alex Mercer is the patient.'}]}}};
+ assert.equal(namedPersonQuestion('tell me who sara is'),'sara');assert.equal(namedPersonAnswer(context,'Sarah')!.answer,'Sarah Mercer is your daughter.');assert.equal(namedPersonAnswer(context,'sara')!.answer,'Did you mean Sarah Mercer, your daughter?');assert.equal(namedPersonAnswer(context,'Sam'),null);
 });

@@ -30,3 +30,20 @@ export function careRoleAnswer(context:any,role:string){
  const physio=role==='psychotherapist'&&(section.records||[]).some((r:any)=>r.person?.relationship==='physiotherapist');
  return {status:'no_support',answer:`I do not have a saved person listed as your ${role}.`+(physio?' Did you mean your physiotherapist, who helps with movement and exercises?':' Your caregiver can help check.'),context:filtered};
 }
+
+
+export function namedPersonQuestion(question:unknown){
+ if(typeof question!=='string')return null;
+ const match=question.trim().replace(/[?.!]+$/,'').match(/^(?:please )?(?:tell me (?:about|who)|who is|who's|remind me who) ([a-z][a-z '-]{1,80}?)(?: is)?$/i);
+ const name=match?.[1]?.trim();return name&&!/^(?:my|your|this|that|her|him|me)\b/i.test(name)?name:null;
+}
+export function namedPersonAnswer(context:any,name:string){
+ const records=(context.sections.personal_records?.records||[]).filter((r:any)=>r.person?.name&&r.person?.relationship&&(r.originalText||'').includes(r.person.name));
+ const norm=(s:string)=>s.toLowerCase().trim();
+ const exact=records.filter((r:any)=>norm(r.person.name)===norm(name)||norm(r.person.name.split(' ')[0])===norm(name));
+ const near=exact.length?[]:records.filter((r:any)=>{const first=norm(r.person.name.split(' ')[0]),q=norm(name);return q.length>=3&&Math.abs(first.length-q.length)===1&&(first.startsWith(q)||q.startsWith(first));});
+ const matches=exact.length?exact:near;const people=[...new Set(matches.map((r:any)=>r.person.id||r.person.name))];if(people.length!==1)return null;
+ const r=matches[0],identity=`${r.person.name}, your ${r.person.relationship}`;
+ const answer=exact.length?(r.sourceType==='user_report'?`You told me ${r.person.name} is your ${r.person.relationship}.`:`${r.person.name} is your ${r.person.relationship}.`):`Did you mean ${identity}?`;
+ return {status:'answered',answer,claims:[{text:answer,citations:[{section:'personal_records',recordId:r._id,sourceId:r._id,quote:r.originalText}]}],context:{...context,sections:{personal_records:{...context.sections.personal_records,records:[r]}}},verification:'saved_relationship_identity',conversational:true};
+}

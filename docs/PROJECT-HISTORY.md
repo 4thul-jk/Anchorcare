@@ -203,3 +203,8 @@ Changed the patient workspace to warm cream, sage and dark teal; increased contr
 ## 2026-10-25 — Greetings are conversation, not memories
 
 Removed the universal Saved message after every turn. Standalone greetings/thanks/farewells are deterministically excluded from extracted personal memories and daily consolidation even if Gemini incorrectly marks them useful. They receive a friendly conversational reply and no saved-memory panel. Normal chat history can still retain the utterance for conversational continuity; useful assertions embedded in longer statements remain eligible. Added regression coverage.
+
+
+## 2026-10-25 — Natural family recall and appearance follow-ups
+
+Fixed the demonstrated daughter-look/name-and-image sequence losing its referent. Appearance requests use approved photo recall, and named-person queries return the saved relationship without appending unrelated patient identity. A unique near-name prefix such as Sara/Sarah prompts confirmation rather than an identity assertion. Picture replies explain the relationship conversationally, preserving user-report attribution. Source evidence remains available separately. 155 tests and type checks passed, including the exact reported phrases.

@@ -6,7 +6,7 @@ import {localDemoAccess} from './demo-access';
 import {RequestLimits,credentialBucket,validateRequestObject} from './http-security';
 import {companionSettings,companionClient} from './companion-provider';
 import {modelDiagnostics,providerReason} from './gemini-diagnostics';
-import {careRoleQuestion,careRoleAnswer} from './care-role';
+import {careRoleQuestion,careRoleAnswer,namedPersonQuestion,namedPersonAnswer} from './care-role';
 import { MobilePush } from './mobile-push';
 import { MobileLink,explicitSos } from './mobile-link';
 import { networkInterfaces } from 'node:os';
@@ -146,6 +146,8 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
           const result=careRoleAnswer(await context.retrieve(request),careRole);
           onInterim?.(result);return result;
         }
+        const namedPerson=path==='/ask'?namedPersonQuestion(input.question):null;
+        if(namedPerson){const request={patient_id:patient,query:input.question,include:['personal_records'],limit:50};onContext?.(request);const identity=namedPersonAnswer(await context.retrieve(request),namedPerson);if(identity)return identity;}
         const quickRequest=path==='/ask'?quickVisitRequest(input.question,cfg.timezone,service.clock()):null;
         let selected: any=quickRequest?{request:quickRequest,routing:{source:'approved_schedule_shortcut',tool:'retrieve_memory',sections:quickRequest.include}}:undefined;
         // Read approved context directly. Let the answer model interpret phrasing;

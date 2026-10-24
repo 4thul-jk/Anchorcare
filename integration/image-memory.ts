@@ -80,7 +80,9 @@ export class ImageMemory{
   const result=await this.recall(patient,question);
   if(!result.images.length)return null;
   const names=[...new Set(result.images.map((image:any)=>image.personName).filter(Boolean))];
-  return {status:'answered',answer:names.length===1?(result.images.find((image:any)=>image.personName===names[0])?.identityExplanation||`Here is a saved picture of ${names[0]}.`):'Here are the matching caregiver-labelled saved memory pictures.',
+  const personImage=result.images.find((image:any)=>image.personName===names[0]);
+  const friendly=names.length===1&&personImage?.personRelationship?`${personImage.personSourceType==='user_report'?'You told me ':''}${names[0]} is your ${personImage.personRelationship}. Here is the saved picture I have.`:null;
+  return {status:'answered',answer:friendly||(names.length===1?(result.images.find((image:any)=>image.personName===names[0])?.identityExplanation||`Here is a saved picture of ${names[0]}.`):'Here are the matching caregiver-labelled saved memory pictures.'),
    images:result.images,verification:'approved_image_labels',conversational:false,imageQuery:question};
  }
  async recall(patient:string,question:unknown,referenceIds:unknown=[]){
@@ -116,7 +118,7 @@ export class ImageMemory{
    }else{
     const caption=words(asset.caption+' '+(target.summary||''));score=references.has(asset.targetId)?10:terms.filter(w=>caption.has(w)).length;
    }
-   if(score)results.push({...this.metadata(asset),personName,personRelationship,identityExplanation,score,interpretation:'Caregiver-labelled saved picture; no face recognition or visual identity verification.'});
+   if(score)results.push({...this.metadata(asset),personName,personRelationship,identityExplanation,personSourceType:asset.targetType==='person'?(cards.some((c:any)=>c.personId===asset.targetId&&c.sourceType==='caregiver_report')?'caregiver_report':cards.some((c:any)=>c.personId===asset.targetId&&c.sourceType==='user_report')?'user_report':null):null,score,interpretation:'Caregiver-labelled saved picture; no face recognition or visual identity verification.'});
   }
   results.sort((a,b)=>b.score-a.score);
   return {images:results.slice(0,4),requested:/\b(?:photo|photos|picture|pictures|image|images|show|remember|memory|memories)\b/i.test(query),selection:'Approved pictures matched by saved person/relationship labels or memory captions; not visual recognition.'};
