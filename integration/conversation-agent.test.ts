@@ -74,3 +74,8 @@ test('Gemini introductions save timestamped reported people without overwriting 
 test('a standalone greeting cannot become a personal memory even if Gemini marks it useful',async()=>{
  const f=fixture({intent:'information',question_text:null,topics:['greeting'],items:[item('hello','personal',null)]});const turn=await f.agent.turn('p',{turn_id:'hello',transcript:'hello'});const saved=await f.agent.commit('p',{id:turn._id});assert.equal(saved.memorySaved,false);assert.equal(saved.memoryDecision,'conversation_only');assert.deepEqual(saved.outputs,[]);assert.match(saved.acknowledgement,/Hello! How are you/);assert.equal((await f.store.list('personal_records')).length,0);assert.equal((await f.store.list('episodes')).length,0);assert.equal((await f.agent.consolidate('p')).created,false);
 });
+
+
+test('no speech is not a meaningful memory or daily conversation topic',async()=>{
+ const f=fixture({transcript:'[No clear speech]',intent:'unclear',question_text:null,topics:[],items:[]});const t=await f.agent.turn('p',{turn_id:'silence',transcript:'[No clear speech]'});const saved=await f.agent.commit('p',{id:t._id});assert.equal(saved.noSpeech,true);assert.equal(saved.memorySaved,false);assert.equal((await f.agent.consolidate('p')).created,false);
+});

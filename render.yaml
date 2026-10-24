@@ -1,0 +1,50 @@
+# Free demo deployment: no paid resources or database provisioning.
+services:
+  - type: web
+    name: muse-anchorcare-demo
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: STORE
+        value: mongodb
+      - key: MONGODB_URI
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: COMPANION_PROVIDER
+        value: gemini
+      - key: GEMINI_MODEL
+        value: gemini-4-argon
+      - key: MONGODB_DATABASE
+        value: engram
+      - key: HOUSEHOLD_ID
+        value: anchorcare-demo
+      - key: SUBJECT_IDS
+        value: demo-person-001
+      - key: ANCHORCARE_PATIENT_ID
+        value: demo-person-001
+      - key: TIMEZONE
+        value: Europe/London
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: COMPANION_TOKEN
+        generateValue: true
+      - key: ANCHORCARE_ADMIN_KEY
+        generateValue: true
+      - key: ANCHORCARE_COMPANION_KEY
+        generateValue: true
+      - key: DEMO_PATIENT_AUTOLOGIN
+        value: false
+      - key: ENABLE_LIVE_SOS_CALLS
+        value: false
+      - key: ENABLE_TELEGRAM_ALERTS
+        value: false
+      - key: ENABLE_TELEGRAM_CAREGIVER_BOT
+        value: false

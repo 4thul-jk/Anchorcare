@@ -1,3 +1,4 @@
+import {TelegramAgent} from './team-agents/telegramAgent';
 import {randomBytes,randomUUID,createHash} from 'node:crypto';
 import {ApiError,text,id,choice} from '../engram-retrieval/src/validation.js';
 const hash=(...parts:any[])=>createHash('sha256').update(JSON.stringify(parts)).digest('hex');
@@ -81,11 +82,12 @@ export class MobileLink{
   await store.insert('mobile_sos',record);
   const devices=await store.list('mobile_devices',{...scope,role:{$in:['caregiver','demo']},revoked:false,expiresAt:{$gt:this.now()}},{},30);let count=0;
   for(const device of devices){if((await this.command(device,'sos_alert',sosId,{sosId,message:'The patient has requested assistance. Current location is not verified.'},15*60000)).created)count++;}
-  const updated=await store.update('mobile_sos',{...scope,_id:sosId},{alertsQueued:count});await this.service.audit(scope,'sos_requested',sosId,{alertsQueued:count,callState:record.callState});return this.sosSummary(updated);
+  const telegram=await new TelegramAgent(this.service,this.providerFetch).notify(patient,sosId);
+  const updated=await store.update('mobile_sos',{...scope,_id:sosId},{alertsQueued:count,telegramState:telegram.state});await this.service.audit(scope,'sos_requested',sosId,{alertsQueued:count,callState:record.callState});return this.sosSummary(updated);
  }
  private sosSummary(s:any){
   const statuses:Record<string,string>={not_configured:'Live calling is not connected.',pending:'A call request is waiting for dispatch; no connection is confirmed.',dispatching:'Call submission is being checked; no connection is confirmed.',queued:'The provider accepted the call request; it is not confirmed answered.',ringing:'The caregiver number is ringing; an answer is not confirmed.','in-progress':'The provider reports an answered call. This could be a person or voicemail.',completed:'The provider reports the call ended. This does not confirm assistance was received.',provider_rejected:'The provider rejected the call request. No connection is confirmed.',unknown_outcome:'Call submission outcome is unknown. Automatic redial is blocked.',expired:'The call request expired before dispatch.',busy:'The caregiver line was busy.',failed:'The provider reports the call failed.','no-answer':'The call was not answered.',canceled:'The call was cancelled.'};
-  return {requestId:s._id,status:s.status,reason:s.reason,callState:s.callState,alertsQueued:s.alertsQueued,message:(s.alertsQueued?'An SOS alert is queued for the linked caregiver phone. Receipt has not been confirmed. ':'No linked caregiver phone alert is queued yet. ')+(statuses[s.callState]||'The call outcome is not confirmed.')};
+  return {requestId:s._id,status:s.status,reason:s.reason,callState:s.callState,alertsQueued:s.alertsQueued,telegramState:s.telegramState||'disabled',message:(s.telegramState==='provider_accepted'?'Telegram accepted a caretaker notification; reading is not confirmed. ':'')+(s.alertsQueued?'An SOS alert is queued for the linked caregiver phone. Receipt has not been confirmed. ':'No linked caregiver phone alert is queued yet. ')+(statuses[s.callState]||'The call outcome is not confirmed.')};
  }
 
  async actions(patient:string){const records=await this.service.store.list('mobile_sos',this.scope(patient),{createdAt:-1},30);const commands=await this.service.store.list('mobile_commands',this.scope(patient),{createdAt:-1},50);return {sos:records.map((s:any)=>({...this.sosSummary(s),createdAt:s.createdAt})),commands:commands.map((c:any)=>({id:c._id,kind:c.kind,state:c.state,deviceId:c.deviceId,expiresAt:c.expiresAt}))};}

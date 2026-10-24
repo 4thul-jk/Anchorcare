@@ -85,3 +85,8 @@ test('public follow-ups reuse only immediately preceding web context, never priv
  await f.agent.answer('p',more._id,{answer:'Another detail.',responseSource:'web',publicTopic:'What is photosynthesis?'});f.advance(1000);
  const privateTurn=await f.turn('Who is my daughter?');await f.agent.answer('p',privateTurn._id,{answer:'Sarah is your daughter.'});f.advance(1000);const follow=await f.turn('tell me more');assert.equal(await f.agent.generalRequest('p',follow._id,follow.transcript),null);
 });
+
+
+test('weather location reply continues the preceding public question',async()=>{
+ const f=fixture();const first=await f.turn('What is the weather today?');await f.agent.answer('p',first._id,{answer:'Which town are you in?',responseSource:'location_needed',publicTopic:'What is the weather today?'});f.advance(1000);const reply=await f.turn("I'm in London.");assert.equal(reply.intent,'mixed');const request=await f.agent.generalRequest('p',reply._id,reply.transcript);assert.equal(request!.question,'What is the weather in London today?');assert.equal(request!.kind,'general');
+});

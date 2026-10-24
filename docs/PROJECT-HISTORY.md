@@ -223,3 +223,8 @@ Inspected the active demo: voice transcription correctly contained London Victor
 ## 2026-10-25 — Muse personality, contextual web follow-ups and media controls
 
 Added shared Muse response style, bounded public-only web conversation context, topic continuity for tell me more/another example, and explicit consistency rules instead of rotating less relevant answers. Private-memory turns break the web chain. Added mic/stop icons, actual-listening animation with reduced-motion support and an always-present picture screen inside the conversation. 163 tests, type check and build passed; visually inspected the narrow live demo. Existing hybrid Atlas memory retrieval unchanged. See MUSE-COMPANION.md.
+
+
+## 2026-10-25 — Weather context, GPS and safe teammate-agent adaptations
+
+Fixed location-only weather replies and removed no-speech placeholders from visible chat/memory/report content. Added explicit-consent browser GPS storage/map links with freshness and accuracy. Adapted caregiver reports, safety-role exports and optional allowlisted Telegram notifications/private commands to Muse scope; supplied hardcoded bot token not copied, needs rotation. Added free Render Docker Blueprint and health endpoint; production disables local auto-login and excludes private files. No cloud service/tunnel or external message created. 169 tests, types and production build passed. See TEAM-AGENTS-AND-LOCATION.md. Hosting choice pending user: free Render, card-verified Koyeb or temporary laptop Quick Tunnel.

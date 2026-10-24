@@ -1,3 +1,4 @@
+import {DeviceLocation} from './device-location';
 import {generalHelpKind} from './general-help';
 import {careAssessment,fallbackCare,careWording} from './care-assistance';
 import {isConversationalRequest,resolveRecallQuery,currentLocationReport,isLocationRecall,locationWording} from './conversation-context';
@@ -11,6 +12,7 @@ import {LifeRecords} from '../engram-retrieval/src/life-records.js';
 import {ImageMemory,validateImage} from './image-memory';
 import {companionClient,companionSettings} from './companion-provider';
 const hash=(value:any)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
+export function noClearSpeech(value:string){return /^\[no clear speech\][.! ]*$/i.test(value.trim());}
 export function smallTalk(text:string){return /^(?:(?:hello|hi|hey)(?: there| again)?|good (?:morning|afternoon|evening)|thanks(?: a lot)?|thank you(?: very much)?|okay|ok|bye|goodbye|how are you)[.!?, ]*$/i.test(text.trim());}
 const categories=['episode','daily_activity','personal','future_plan','location_report'];
 export function canAutoRemember(quote:string){return !/\b(medicines?|medications?|pills?|dos(?:e|age)|tablets?|insulin|diabet\w*|diagnos\w*|hurt|bleed\w*|injur\w*|pain|fell|fall|emergency|suicid\w*|allerg\w*|blood pressure|prescri\w*)\b/i.test(quote);}
@@ -74,6 +76,8 @@ export class ConversationAgent{
    }
    const fallback=fallbackCare(proposal.transcript);if(!proposal.careAssistance||proposal.careAssistance.level==='none')proposal.careAssistance=fallback;
    if(isConversationalRequest(proposal.transcript)&&proposal.items.length===0){proposal.intent='question';proposal.question=proposal.transcript;}
+   if(noClearSpeech(proposal.transcript)){proposal.intent='unclear';proposal.question=null;proposal.items=[];proposal.introductions=[];proposal.topics=[];proposal.careAssistance={level:'none',quote:null};}
+   const previous=recent.at(-1);if(currentLocationReport(proposal.transcript)&&previous&&['web','location_needed'].includes(previous.answerSource)&&/\b(weather|forecast|temperature)\b/i.test(previous.publicTopic||previous.transcript)){proposal.intent='mixed';proposal.question=proposal.transcript;}
    if(smallTalk(proposal.transcript)){proposal.intent='information';proposal.question=null;proposal.items=[];proposal.introductions=[];proposal.topics=[];}
    const resolved=resolveRecallQuery(proposal.question||proposal.transcript,proposal.proposedRecallQuery,recent);
 
@@ -178,9 +182,9 @@ export class ConversationAgent{
    const careResponse=await this.careReply(patient,turn._id);
    const feelingUnwell=/\b(?:not feeling (?:very )?well|feel(?:ing)? (?:unwell|ill|sick))\b/i.test(turn.transcript);
    const intro=(turn.introductions||[])[0];
-   const chatOnly=smallTalk(turn.transcript);
-   const acknowledgement=chatOnly?(/^(?:okay|ok)[.!?, ]*$/i.test(turn.transcript)?"Okay. I'm here when you need me.":/^(?:thanks|thank you)/i.test(turn.transcript)?"You're welcome. I'm here whenever you'd like to talk.":/^(?:bye|goodbye)/i.test(turn.transcript)?"Take care. I'm here whenever you need me.":"Hello! How are you doing today?"):careResponse?careResponse.answer:intro?`I have remembered the introduction: ${intro.name}`+(intro.relationship?`, described as your ${intro.relationship}.`:`. How is ${intro.name} related to you?`):feelingUnwell?"I'm sorry you're feeling unwell. Can you tell me a little more about how you're feeling?":location?`I have remembered that you told me you were at ${location}. If you ask later, I can tell you when you said it.`:outputs.some(o=>o.status==='available_report')?'Thank you for telling me. I have saved what you shared, so we can come back to it later.':outputs.length?'I have saved your report. This detail needs your caregiver to review it.':'I have kept your words in our conversation. What would you like to talk about?';
-   const saved=await this.service.store.update('agent_capture_turns',{...scope,_id:turn._id},{state:'saved',memorySaved:outputs.some(o=>o.collection!=='agent_capture_proposals'),memoryDecision:chatOnly?'conversation_only':outputs.length?'personal_report':'conversation_only',acknowledgement,careResponse,contactOfferId:careResponse?.contactOfferId||null,...(!['question','mixed'].includes(turn.intent)?{lastAnswer:acknowledgement,answeredAt:this.service.clock()}:{}),outputs,mediaIds,visualNote,locationReport:location?{location,reportedAt:turn.recordedAt,verifiedGps:false}:null,cameraConsent:input.camera_consent===true,audioRetentionConsent:input.audio_consent===true,savedAt:this.service.clock()});
+   const noSpeech=noClearSpeech(turn.transcript),chatOnly=smallTalk(turn.transcript);
+   const acknowledgement=noSpeech?'I did not catch any clear words. Please try again.':chatOnly?(/^(?:okay|ok)[.!?, ]*$/i.test(turn.transcript)?"Okay. I'm here when you need me.":/^(?:thanks|thank you)/i.test(turn.transcript)?"You're welcome. I'm here whenever you'd like to talk.":/^(?:bye|goodbye)/i.test(turn.transcript)?"Take care. I'm here whenever you need me.":"Hello! How are you doing today?"):careResponse?careResponse.answer:intro?`I have remembered the introduction: ${intro.name}`+(intro.relationship?`, described as your ${intro.relationship}.`:`. How is ${intro.name} related to you?`):feelingUnwell?"I'm sorry you're feeling unwell. Can you tell me a little more about how you're feeling?":location?`I have remembered that you told me you were at ${location}. If you ask later, I can tell you when you said it.`:outputs.some(o=>o.status==='available_report')?'Thank you for telling me. I have saved what you shared, so we can come back to it later.':outputs.length?'I have saved your report. This detail needs your caregiver to review it.':'I have kept your words in our conversation. What would you like to talk about?';
+   const saved=await this.service.store.update('agent_capture_turns',{...scope,_id:turn._id},{state:'saved',noSpeech,memorySaved:outputs.some(o=>o.collection!=='agent_capture_proposals'),memoryDecision:chatOnly?'conversation_only':outputs.length?'personal_report':'conversation_only',acknowledgement,careResponse,contactOfferId:careResponse?.contactOfferId||null,...(!['question','mixed'].includes(turn.intent)?{lastAnswer:acknowledgement,answeredAt:this.service.clock()}:{}),outputs,mediaIds,visualNote,locationReport:location?{location,reportedAt:turn.recordedAt,verifiedGps:false}:null,cameraConsent:input.camera_consent===true,audioRetentionConsent:input.audio_consent===true,savedAt:this.service.clock()});
    await this.service.audit(scope,'agent_turn_saved',turn._id,{intent:turn.intent,records:outputs.length,media:mediaIds.length});
    return this.publicTurn(saved);
   }finally{this.active.delete(turn._id);}
@@ -196,11 +200,13 @@ export class ConversationAgent{
  }
  async generalRequest(patient:string,turnId:unknown,fallback:string){
   const turn=typeof turnId==='string'?await this.service.store.one('agent_capture_turns',{...this.scope(patient),_id:turnId}):null;
-  const question=turn?.transcript||fallback;
+  let question=turn?.transcript||fallback;
   const recent=turn?await this.history(patient,turn.sessionId):[];const publicHistory:any[]=[];
-  for(const previous of [...recent].filter((t:any)=>t._id!==turnId).reverse()){if(!['web','general_creative'].includes(previous.answerSource))break;publicHistory.unshift({question:previous.publicTopic||previous.transcript,answer:previous.lastAnswer});if(publicHistory.length===3)break;}
+  for(const previous of [...recent].filter((t:any)=>t._id!==turnId).reverse()){if(!['web','general_creative','location_needed'].includes(previous.answerSource))break;publicHistory.unshift({question:previous.publicTopic||previous.transcript,answer:previous.lastAnswer});if(publicHistory.length===3)break;}
+  const place=currentLocationReport(question),lastPublic=publicHistory.at(-1);let weatherFollowup=false;
+  if(place&&lastPublic&&/\b(weather|forecast|temperature)\b/i.test(lastPublic.question)){question='What is the weather in '+place+' today?';weatherFollowup=true;}
   const followup=/^(?:please )?(?:tell me more|what else|anything else|another (?:one|example)|explain that (?:again|simply)|say that (?:again|differently)|a different (?:answer|example))[.!? ]*$/i.test(question.trim());
-  const kind=followup&&publicHistory.length?'general':generalHelpKind(question,turn?.helpRoute);return kind?{question,kind,publicHistory}:null;
+  const kind=followup&&publicHistory.length?'general':generalHelpKind(question,turn?.helpRoute);return kind?{question,kind,publicHistory,weatherFollowup}:null;
  }
  async contextualReply(patient:string,turnId:unknown){
   if(typeof turnId!=='string')return null;const turn=await this.service.store.one('agent_capture_turns',{...this.scope(patient),_id:turnId});
@@ -218,12 +224,13 @@ export class ConversationAgent{
  async locationReply(patient:string,query:string,turnId:unknown){
   if(!isLocationRecall(query))return null;
   const scope=this.scope(patient),day=explicitQuestionDay(query,this.service.cfg.timezone,this.service.clock());
+  const gps=!day?await new DeviceLocation(this.service).latest(patient):null;
   const bounds=day?dayBounds(day,this.service.cfg.timezone):null;
   const report=(await this.service.store.list('agent_location_reports',{...scope,...(bounds?{reportedAt:{$gte:bounds.start,$lt:bounds.end}}:{})},{reportedAt:-1},1))[0]||null;
   const turn=typeof turnId==='string'?await this.service.store.one('agent_capture_turns',{...scope,_id:turnId}):null;
   const offer={_id:'offer_'+randomUUID(),...scope,sessionId:turn?.sessionId||null,turnId:turn?._id||null,createdAt:this.service.clock(),expiresAt:new Date(+this.service.clock()+5*60000),used:false};
   await this.service.store.insert('agent_contact_offers',offer);
-  return {status:'support',answer:!report&&day?`I don't have a location you reported for ${day}. I can't confirm your current location. Would you like help contacting your emergency contact?`:locationWording(report,this.service.clock(),this.service.cfg.timezone),locationKnown:false,lastReportedLocation:report?{location:report.location,reportedAt:report.reportedAt,sourceTurnId:report.turnId}:null,contactOfferId:offer._id,conversational:true,verification:'timestamped_user_report_not_gps'};
+  return {status:'support',...(gps?.fresh?{deviceLocation:gps,mapUrl:gps.mapUrl}:{}),answer:gps?.fresh?`Your device shared a location at ${new Intl.DateTimeFormat('en-GB',{timeZone:this.service.cfg.timezone,timeStyle:'short'}).format(new Date(gps.capturedAt))}, with an accuracy of about ${Math.round(gps.accuracy)} metres. Open the map to see it. I cannot confirm you are with the device. Would you like help contacting your caretaker?`:!report&&day?`I don't have a location you reported for ${day}. I can't confirm your current location. Would you like help contacting your emergency contact?`:locationWording(report,this.service.clock(),this.service.cfg.timezone),locationKnown:!!gps?.fresh,lastReportedLocation:report?{location:report.location,reportedAt:report.reportedAt,sourceTurnId:report.turnId}:null,contactOfferId:offer._id,conversational:true,verification:'timestamped_user_report_not_gps'};
  }
  async contactDecision(patient:string,turnId:unknown){
   if(typeof turnId!=='string')return null;const scope=this.scope(patient),turn=await this.service.store.one('agent_capture_turns',{...scope,_id:turnId});if(!turn)return null;
@@ -243,7 +250,7 @@ export class ConversationAgent{
  }
  async consolidate(patient:string,day?:string){
   const daily=await this.daily(patient,day);if(!daily.turns.length)return {created:false,message:'No conversation turns for that day'};
-  const selected=daily.turns.filter((t:any)=>t.state==='saved'&&!smallTalk(t.transcript)).slice(-20);if(!selected.length)return {created:false,message:'No completed turns to consolidate'};
+  const selected=daily.turns.filter((t:any)=>t.state==='saved'&&!smallTalk(t.transcript)&&!noClearSpeech(t.transcript)).slice(-20);if(!selected.length)return {created:false,message:'No completed turns to consolidate'};
   const content='Conversation journal for '+daily.day+'. Questions are not confirmation that an activity happened. All statements remain user reports.\n'+selected.map((t:any)=>`[${new Date(t.recordedAt).toISOString()}] ${t.intent==='question'?'Question asked':t.intent==='mixed'?'Mixed question and report':'User report'}: ${t.transcript}`).join('\n');
   const digest=hash(selected.map((t:any)=>t._id));
   const result=await new LifeRecords(this.service).addLog({patient_id:patient,id:'journal_'+digest,activity:'other',label:'Conversation journal '+daily.day,outcome:'uncertain',occurred_at:new Date(selected.at(-1).recordedAt).toISOString(),original_text:content.slice(0,4000),source_type:'user_report',source_ref:'agent_day_'+daily.day});

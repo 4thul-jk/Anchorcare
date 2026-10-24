@@ -25,7 +25,7 @@ export function resolveRecallQuery(original:string,proposed:unknown,history:any[
  return {query:original,unresolved:false};
 }
 export function currentLocationReport(transcript:string){
- const match=transcript.trim().match(/^(?:(?:actually|currently|now)[, ]+)?(?:i am|i'm|im)\s+(?:currently\s+)?(?:at|in|near)\s+([^?!\n]{2,160})[.!]?$/i);
+ const match=transcript.replace(/\u2019/g,"'").trim().match(/^(?:(?:actually|currently|now)[, ]+)?(?:i am|i'm|im)\s+(?:currently\s+)?(?:at|in|near)\s+([^?!\n]{2,160})[.!]?$/i);
  if(!match||/\b(tomorrow|yesterday|last week|will|maybe|not|used to)\b/i.test(match[1]))return null;
  const location=match[1].split(/\s+(?:and|but|because)\s+|[.!]\s+(?=i\b)/i)[0].replace(/[.!]+$/,'').trim();
  return location.length>=2?location:null;

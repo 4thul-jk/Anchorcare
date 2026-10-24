@@ -1,3 +1,6 @@
+import {TelegramAgent} from './team-agents/telegramAgent';
+import {CaregiverAgent} from './team-agents/caregiverAgent';
+import {DeviceLocation} from './device-location';
 import {MUSE_PERSONALITY} from './muse-personality';
 import {GeneralHelp} from './general-help';
 import {describeStorage} from './storage-catalog';
@@ -56,6 +59,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
   const team = new TeamContract(service), triggers = new TriggerContract(service);
   const life = new LifeRecords(service), context = new MemoryContext(service);
   const ledger = new AtlasLedger(service);
+  const deviceLocation=new DeviceLocation(service);
   const generalHelp=new GeneralHelp();
   const agent = new ConversationAgent(service,options.classifyTurn);
   const supportSessions = new SupportSessions();
@@ -63,6 +67,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
   const medication = new MedicationReminders(service);
   const imageMemory = new ImageMemory(service);
   const mobile = new MobileLink(service);
+  const telegramAgent=new TelegramAgent(service);
   const sessions=new ConversationSessions(service,agent,(patient,input)=>mobile.sos(patient,input));
   const push = new MobilePush(service,mobile);
   async function recallAndForward(input:any){const result=await imageMemory.recall(patient,input.question,input.reference_ids);await mobile.sendImages(patient,result.images);return result;}
@@ -124,6 +129,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
         if(path==='/ask'){
           if(/^(?:who is (?:this|that|in (?:this|that) (?:picture|photo)))[?!. ]*$/i.test(input.question||''))return input.image_id?await imageMemory.identifySaved(patient,String(input.image_id)):{status:'support',answer:'Which saved picture do you mean? Tap Who is this? below the picture, and I can explain their name and relationship to you.',conversational:true};
           const care=await agent.careReply(patient,input.agent_turn_id);if(care)return care;
+          const followup=await agent.generalRequest(patient,input.agent_turn_id,input.question);if(followup?.weatherFollowup){onProgress?.('searching_web');return generalHelp.answer(followup.question,followup.kind,signal,followup.publicHistory);}
           const contextual=await agent.contextualReply(patient,input.agent_turn_id);if(contextual)return contextual;
           const location=await agent.locationReply(patient,input.question,input.agent_turn_id);if(location)return location;
         }
@@ -215,7 +221,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
       if(req.method==='POST')validateRequestObject(req.body);
       else validateRequestObject(req.query);
       const origin = req.headers.origin;
-      if (origin && origin !== (process.env.PUBLIC_APP_ORIGIN || `${req.protocol}://${req.headers.host}`)) return void res.status(403).json({ error: 'Same-origin requests only' });
+      if (origin && origin !== (process.env.PUBLIC_APP_ORIGIN || process.env.RENDER_EXTERNAL_URL || `${req.protocol}://${req.headers.host}`)) return void res.status(403).json({ error: 'Same-origin requests only' });
       if(req.method==='POST'&&req.path==='/mobile/pair')return void res.json(await mobile.pair(req.body,req.ip||'unknown'));
       if(req.path.startsWith('/mobile/')){
         limits.take('device-auth:'+req.ip,120);
@@ -262,6 +268,9 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
         try{return void res.json(req.path==='/agent/turn'?await agent.turn(patient,input,stop.signal):await agent.commit(patient,input,stop.signal));}
         finally{clearTimeout(timer);res.off('close',disconnected);}
       }
+      if(req.method==='GET'&&req.path==='/admin/team-agents'){if(!admin)return void res.status(403).json({error:'Caregiver access required'});return void res.json({telegram:telegramAgent.status(),summary:await new CaregiverAgent(service).report(patient,input.kind==='alerts'?'alerts':'summary')});}
+      if(req.method==='POST'&&req.path==='/location'){limits.take('location:'+credentialBucket(key),12);return void res.json(await deviceLocation.save(patient,input));}
+      if(req.method==='GET'&&req.path==='/location')return void res.json({location:await deviceLocation.latest(patient)});
       if(req.method==='POST'&&req.path==='/identify-image'){limits.take('identify-image:'+credentialBucket(key),30);return void res.json(await imageMemory.identifySaved(patient,String(input.image_id||'')));}
       if(req.method==='GET'&&req.path==='/admin/storage'){if(!admin)return void res.status(403).json({error:'Caregiver access required'});return void res.json({collections:store.mode==='mongodb'?await describeStorage((store as any).db):[]});}
       if(req.method==='GET'&&req.path==='/admin/agent/session-reports'){if(!admin)return void res.status(403).json({error:'Caregiver access required'});return void res.json({reports:await store.list('agent_session_reports',service.scope(patient),{createdAt:-1},20)});}
@@ -334,9 +343,10 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
   let mobileRunning:Promise<any>|undefined;
   const mobileTick=()=>{if(!mobileRunning)mobileRunning=sessions.tick().then(()=>mobile.tick()).then(()=>push.tick()).then(()=>agent.nightly()).catch(()=>console.error('Mobile dispatch unavailable')).finally(()=>{mobileRunning=undefined;});};
   const mobileTimer=setInterval(mobileTick,5000);
+  const telegramTimer=setInterval(()=>{void telegramAgent.poll(patient);},5000);
   let running: Promise<any> | undefined;
   const tick = () => { if (!running) running = service.tick().catch(() => console.error('Engram worker failed')).finally(() => { running = undefined; }); };
   const timer = cfg.runWorker ? setInterval(tick, cfg.intervalMs) : undefined;
   if (cfg.runWorker) tick();
-  return { service, store, close: async () => { answerJobs.close(); clearInterval(mobileTimer); if(mobileRunning)await mobileRunning; if (timer) clearInterval(timer); if (running) await running; await store.close(); } };
+  return { service, store, close: async () => { answerJobs.close(); telegramAgent.close();clearInterval(telegramTimer); clearInterval(mobileTimer); if(mobileRunning)await mobileRunning; if (timer) clearInterval(timer); if (running) await running; await store.close(); } };
 }

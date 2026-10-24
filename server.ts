@@ -23,6 +23,7 @@ async function startServer() {
     next(error);
   });
   const engram = await mountEngram(app);
+  app.get('/healthz',(_req,res)=>res.json({status:'ok'}));
 
   app.post('/api/gemini/reason', (_req, res) => {
     res.status(410).json({ error: 'Legacy client-context reasoning is disabled. Use the authenticated /api/engram/ask route.' });

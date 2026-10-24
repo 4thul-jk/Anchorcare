@@ -8,3 +8,12 @@ dist
 coverage
 data
 tmp
+
+.private-backups
+Downloads
+
+**/.env
+**/.env.*
+**/.private-backups/**
+**/node_modules
+**/.git
