@@ -82,3 +82,20 @@
 
 .anchorcare-app > header > button { background: #edf2e8; color: #496454; border: 1px solid #d8e2d2; }
 @media(max-width:640px) { .anchorcare-app > header nav { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px 20px; overflow: visible; } .anchorcare-app > header nav a { white-space: normal; } }
+
+.patient-workspace button:has(svg) { display: inline-flex; align-items: center; justify-content: center; gap: 9px; }
+.conversation-card > [role=status]:first-of-type { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
+.mic-status-icon { display: inline-flex; }
+.voice-levels { display: inline-flex; align-items: center; gap: 3px; height: 18px; }
+.voice-levels i { width: 3px; height: 12px; background: currentColor; border-radius: 3px; animation: muse-listening 1s ease-in-out infinite alternate; }
+.voice-levels i:nth-child(2) { height: 18px; animation-delay: .2s; }
+.voice-levels i:nth-child(3) { height: 8px; animation-delay: .4s; }
+@keyframes muse-listening { to { transform: scaleY(.45); } }
+.memory-picture-screen { overflow: hidden; border: 1px solid #d7e2d1; border-radius: 18px; background: #f3f6ee; }
+.picture-screen-heading { display:flex; align-items:center; flex-wrap:wrap; gap:9px; padding:16px 18px; border-bottom:1px solid #e0e7da; color:#42614e; }
+.picture-screen-heading h3 { font-size:15px; font-weight:600; }
+.picture-screen-heading span { font-size:12px; margin-left:auto; }
+.picture-screen-empty { min-height:170px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; padding:24px; text-align:center; color:#57705b; }
+.picture-screen-empty > span { font-size:13px; color:#6d7b68; }
+.memory-picture-screen > .grid { padding:16px; }
+@media(prefers-reduced-motion:reduce) { .voice-levels i { animation:none; } }

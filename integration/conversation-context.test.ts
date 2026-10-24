@@ -77,3 +77,11 @@ test('daughter appearance and short name-and-image follow-ups stay on the pictur
 
 
 test('current location excludes the next sentence containing a destination',()=>{assert.equal(currentLocationReport('I am in London Victoria Coach Station. I need to reach Guildford railway station.'),'London Victoria Coach Station');});
+
+
+test('public follow-ups reuse only immediately preceding web context, never private memory',async()=>{
+ const f=fixture();const first=await f.turn('What is photosynthesis?');await f.agent.answer('p',first._id,{answer:'Plants use light.',responseSource:'web',publicTopic:'What is photosynthesis?'});f.advance(1000);
+ const more=await f.turn('tell me more');const request=await f.agent.generalRequest('p',more._id,more.transcript);assert.equal(request!.kind,'general');assert.equal(request!.publicHistory.length,1);assert.equal(request!.publicHistory[0].question,'What is photosynthesis?');assert.equal(await f.agent.contextualReply('p',more._id),null);
+ await f.agent.answer('p',more._id,{answer:'Another detail.',responseSource:'web',publicTopic:'What is photosynthesis?'});f.advance(1000);
+ const privateTurn=await f.turn('Who is my daughter?');await f.agent.answer('p',privateTurn._id,{answer:'Sarah is your daughter.'});f.advance(1000);const follow=await f.turn('tell me more');assert.equal(await f.agent.generalRequest('p',follow._id,follow.transcript),null);
+});

@@ -188,18 +188,23 @@ export class ConversationAgent{
  async answer(patient:string,turnId:unknown,result:any){
   if(typeof turnId!=='string')return;
   const references=[...new Set((result.claims||[]).flatMap((c:any)=>(c.citations||[]).map((x:any)=>String(x.recordId))))].slice(0,20);
-  await this.service.store.update('agent_capture_turns',{...this.scope(patient),_id:turnId},{answerReferences:references,answerSource:result.responseSource||'saved_memory',webSources:(result.sources||[]).slice(0,8),answerStatus:result.status||'unknown',lastAnswer:typeof result.answer==='string'?result.answer.slice(0,2500):null,answeredAt:this.service.clock(),contactOfferId:result.contactOfferId||null});
+  await this.service.store.update('agent_capture_turns',{...this.scope(patient),_id:turnId},{answerReferences:references,answerSource:result.responseSource||'saved_memory',webSources:(result.sources||[]).slice(0,8),publicTopic:result.publicTopic||null,answerStatus:result.status||'unknown',lastAnswer:typeof result.answer==='string'?result.answer.slice(0,2500):null,answeredAt:this.service.clock(),contactOfferId:result.contactOfferId||null});
  }
  async history(patient:string,sessionId:string){
   const turns=await this.service.store.list('agent_capture_turns',{...this.scope(patient),sessionId:id(sessionId,'session_id')},{recordedAt:-1},8);
-  return turns.reverse().map((t:any)=>({_id:t._id,transcript:t.transcript,recallQuery:t.recallQuery||t.question||t.transcript,lastAnswer:t.lastAnswer||null,answerSource:t.answerSource||null,recordedAt:t.recordedAt,answeredAt:t.answeredAt||null,contactOfferId:t.contactOfferId||null}));
+  return turns.reverse().map((t:any)=>({_id:t._id,transcript:t.transcript,recallQuery:t.recallQuery||t.question||t.transcript,lastAnswer:t.lastAnswer||null,answerSource:t.answerSource||null,publicTopic:t.publicTopic||null,recordedAt:t.recordedAt,answeredAt:t.answeredAt||null,contactOfferId:t.contactOfferId||null}));
  }
  async generalRequest(patient:string,turnId:unknown,fallback:string){
   const turn=typeof turnId==='string'?await this.service.store.one('agent_capture_turns',{...this.scope(patient),_id:turnId}):null;
-  const question=turn?.transcript||fallback;const kind=generalHelpKind(question,turn?.helpRoute);return kind?{question,kind}:null;
+  const question=turn?.transcript||fallback;
+  const recent=turn?await this.history(patient,turn.sessionId):[];const publicHistory:any[]=[];
+  for(const previous of [...recent].filter((t:any)=>t._id!==turnId).reverse()){if(!['web','general_creative'].includes(previous.answerSource))break;publicHistory.unshift({question:previous.publicTopic||previous.transcript,answer:previous.lastAnswer});if(publicHistory.length===3)break;}
+  const followup=/^(?:please )?(?:tell me more|what else|anything else|another (?:one|example)|explain that (?:again|simply)|say that (?:again|differently)|a different (?:answer|example))[.!? ]*$/i.test(question.trim());
+  const kind=followup&&publicHistory.length?'general':generalHelpKind(question,turn?.helpRoute);return kind?{question,kind,publicHistory}:null;
  }
  async contextualReply(patient:string,turnId:unknown){
   if(typeof turnId!=='string')return null;const turn=await this.service.store.one('agent_capture_turns',{...this.scope(patient),_id:turnId});
+  if(turn?.clarification&&await this.generalRequest(patient,turnId,turn.transcript))return null;
   return turn?.clarification?{status:'support',answer:turn.clarification,conversational:true}:null;
  }
  async careReply(patient:string,turnId:unknown){

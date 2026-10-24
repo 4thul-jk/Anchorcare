@@ -218,3 +218,8 @@ Added public/general/directions routing alongside private recall, Gemini Google 
 ## 2026-10-25 — Spoken route details were heard but ignored
 
 Inspected the active demo: voice transcription correctly contained London Victoria Coach Station and Guildford railway station, but directions parsing only recognised from/to phrasing and repeated the origin/destination question. Added explicit I am in/at/near and need/want to reach/go to/get to forms, producing the correct Maps link from the current utterance. Location reports no longer swallow the following destination sentence. Also made a missing reply an explicit retryable failure; saved turns survive retries without duplicate chat entries. Okay now acknowledges the user instead of restarting the greeting. 161 tests and type checks passed, including the exact spoken example. Existing chat history was not rewritten.
+
+
+## 2026-10-25 — Muse personality, contextual web follow-ups and media controls
+
+Added shared Muse response style, bounded public-only web conversation context, topic continuity for tell me more/another example, and explicit consistency rules instead of rotating less relevant answers. Private-memory turns break the web chain. Added mic/stop icons, actual-listening animation with reduced-motion support and an always-present picture screen inside the conversation. 163 tests, type check and build passed; visually inspected the narrow live demo. Existing hybrid Atlas memory retrieval unchanged. See MUSE-COMPANION.md.

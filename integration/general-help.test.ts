@@ -24,3 +24,9 @@ test('spoken origin plus need-to-reach destination is used instead of asking aga
  const result=await helper.answer('I am in London Victoria Coach Station. I need to reach Guildford railway station.','directions');assert.match(result.mapUrl!,/origin=London%20Victoria%20Coach%20Station&destination=Guildford%20railway%20station/);assert.match(result.answer,/You told me you are at London Victoria Coach Station/);
  const destination=await helper.answer('I need to go to Guildford. I need to know how to get there.','directions');assert.match(destination.answer,/get to Guildford/);assert.match(destination.answer,/starting from/);
 });
+
+
+test('web follow-up passes bounded public context and Muse style without rotating unsupported facts',async()=>{
+ let sent:any;const helper=new GeneralHelp(async()=>({interactions:{create:async(p:any)=>{sent=p;return {output_text:'A new relevant detail.',steps:[{annotations:[{type:'url_citation',url:'https://example.org/detail'}]}]};}}})as any);
+ await helper.answer('tell me more','general',undefined,[{question:'What is photosynthesis?',answer:'Plants use light.'}]);const payload=JSON.parse(sent.input);assert.equal(payload.currentQuestion,'tell me more');assert.equal(payload.previousPublicConversation[0].question,'What is photosynthesis?');assert.match(sent.system_instruction,/Muse/);assert.match(sent.system_instruction,/do not invent a different fact/);
+});

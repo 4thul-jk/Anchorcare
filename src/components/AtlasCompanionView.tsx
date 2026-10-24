@@ -1,3 +1,4 @@
+import {Image as ImageIcon} from 'lucide-react';
 import {ConversationAgentPanel} from './ConversationAgentPanel';
 import { SavedMemoryImage } from './SavedMemoryImage';
 import { runCompanionJob } from '../lib/companionJob';
@@ -85,7 +86,7 @@ export function AtlasCompanionView({ accessKey, onAccessKeyChange }: { accessKey
   const button = 'rounded-lg bg-slate-900 text-white px-4 py-3 text-sm disabled:opacity-40';
   return <section className="patient-workspace space-y-5">
     <div className="companion-intro"><p className="intro-eyebrow">HERE WITH YOU</p><h1 className="text-2xl font-semibold">Your memory companion</h1><p>A little help remembering. One thought at a time.</p></div>
-    <p className="text-slate-600">Talk about your day, remember familiar faces, or ask an everyday question. General questions can use Google Search; only your current question is sent, not your saved memories. This demo uses fictional information.</p>
+    <p className="text-slate-600">Talk about your day, remember familiar faces, or ask an everyday question. General questions can use Google Search with your recent public web discussion; your saved personal memories stay separate. This demo uses fictional information.</p>
     {autoConnecting&&<p role="status">Opening your demo companion...</p>}
     {!autoConnecting&&!session?.demoAutoLogin&&<form className="flex gap-3" onSubmit={e => { e.preventDefault(); setError(''); setBusy(true); void memoryApi(accessKey, '/status').then(setSession).catch(e => setError(e.message)).finally(() => setBusy(false)); }}>
       <input className={field} aria-label="Companion access key" type="password" placeholder="Memory access key" autoComplete="off" disabled={busy} value={accessKey} onChange={e => onAccessKeyChange(e.target.value)} />
@@ -93,8 +94,8 @@ export function AtlasCompanionView({ accessKey, onAccessKeyChange }: { accessKey
     </form>}
     {error && <p role="alert" className="bg-red-50 text-red-800 p-4 rounded-lg">{error}</p>}
     {session && <>
-      <p className="text-sm text-slate-500">{session.demoAutoLogin?'Demo patient · Connected':session.mode === 'mongodb' ? 'Access key accepted · Atlas mode' : 'Local test memory'} · {session.patient_id}</p>
-      <ConversationAgentPanel accessKey={accessKey} onQuestion={(question,turnId)=>submitQuestion(question,turnId)}/>
+      <p className="text-sm text-slate-500">{session.demoAutoLogin?'Demo patient  -  Connected':session.mode === 'mongodb' ? 'Access key accepted  -  Atlas mode' : 'Local test memory'}  -  {session.patient_id}</p>
+      <ConversationAgentPanel accessKey={accessKey} onQuestion={(question,turnId)=>submitQuestion(question,turnId)} visualContent={<section aria-label="Memory picture screen" className="memory-picture-screen"><div className="picture-screen-heading"><ImageIcon size={19} aria-hidden="true"/><h3>Pictures to help you remember</h3>{pictures.length>0&&<span>{pictures.length} saved picture{pictures.length!==1?'s':''}</span>}</div>{pictures.length?<div className="grid md:grid-cols-2 gap-4">{pictures.map(image=><SavedMemoryImage key={image._id} image={image} accessKey={accessKey}/>)}</div>:<div className="picture-screen-empty"><ImageIcon size={38} strokeWidth={1.3} aria-hidden="true"/><p>Your saved pictures will appear here.</p><span>Try “Show me my daughter” or ask about a memory.</span></div>}</section>}/>
       <details className="rounded-xl border p-4"><summary className="cursor-pointer">Direct memory lookup</summary>
       <form className="rounded-xl border bg-white p-5 space-y-3" onSubmit={e => void ask(e)}>
         <label className="block font-medium" htmlFor="atlas-question">What would you like to remember?</label>
@@ -103,7 +104,7 @@ export function AtlasCompanionView({ accessKey, onAccessKeyChange }: { accessKey
         <button className={button} disabled={busy || !question.trim()}>{busy ? 'Preparing your answer...' : 'Ask about saved records'}</button>
       </form></details>
       {replyProgress && <div role="status" className="rounded-lg bg-blue-50 p-3"><p>{replyProgress}</p><button type="button" className="mt-2 rounded border px-3 py-2" onClick={()=>{version.current++;cancelReply();submitting.current=false;setReplyProgress('');setBusy(false);setResult(null);}}>Cancel reply</button></div>}
-      {pictures.length>0&&<section aria-label="Saved pictures" className="space-y-3"><h2 className="text-xl font-semibold">Saved pictures to help you remember</h2><p className="text-sm text-slate-600">Selected using caregiver labels and saved records.</p><div className="grid md:grid-cols-2 gap-4">{pictures.map(image=><SavedMemoryImage key={image._id} image={image} accessKey={accessKey}/>)}</div></section>}
+
       {pictureNotice&&<p role="status" className="text-slate-600">{pictureNotice}</p>}
       {result && <section aria-label="Atlas answer" className="rounded-xl border bg-white p-5 space-y-4">
         <p aria-live="polite" className="whitespace-pre-line text-lg">{result.answer || (result.status === 'evidence_only' ? result.message || 'Here are the saved reports returned for your question. A conversational AI answer is not available.' : result.message)}</p>
@@ -116,11 +117,11 @@ export function AtlasCompanionView({ accessKey, onAccessKeyChange }: { accessKey
         {result.context && <details className="border-t pt-3"><summary className="cursor-pointer font-medium">View supporting saved records</summary>
         {Object.entries(result.context?.sections || {}).map(([name, section]: [string, any]) => <div key={name} className="border-t pt-3">
           <h2 className="font-medium">{{ episodes: 'Past reports', daily_logs: 'Daily activity reports', personal_records: 'Familiar people and personal information', plans: 'Scheduled plans (not completed events)' }[name]}</h2>
-          {section.day && <p className="text-sm text-slate-500">{section.day} · {section.timezone}</p>}
+          {section.day && <p className="text-sm text-slate-500">{section.day}  -  {section.timezone}</p>}
           {name === 'episodes' && section.records.length > 0 && <p className="text-sm text-slate-500">Top retrieved report; retrieval rank does not independently verify the answer.</p>}
           {section.status === 'unavailable' ? <p>Could not check these records.</p> : !section.records.length ? <p>No matching saved records were returned.</p> : section.records.slice(0, name === 'episodes' ? 1 : undefined).map((r: any) => <article key={r.id || r._id} className="mt-3 rounded-lg bg-slate-50 p-3">
             <p>{r.originalText || r.gist || `${r.kind} planned for ${when(r.eventStart)}`}</p>
-            <p className="mt-1 text-sm text-slate-500">{r.sourceType || 'Source-linked report'}{r.outcome ? ` · ${r.outcome}` : ''}{r.occurredAt || r.start ? ` · ${when(r.occurredAt || r.start)}` : ''}</p>
+            <p className="mt-1 text-sm text-slate-500">{r.sourceType || 'Source-linked report'}{r.outcome ? `  -  ${r.outcome}` : ''}{r.occurredAt || r.start ? `  -  ${when(r.occurredAt || r.start)}` : ''}</p>
             {r.evidence?.map((s: any) => <blockquote key={s.id} className="mt-2 text-sm">{s.source_type}: {s.text || 'Uninspected media; no factual claim confirmed.'}</blockquote>)}
           </article>)}
           {name === 'episodes' && section.records.length > 1 && <details className="mt-3 text-sm"><summary>Other retrieved candidates - not verified answers</summary>{section.records.slice(1).map((r: any) => <p key={r.id} className="mt-2">{r.gist}</p>)}</details>}
