@@ -1,0 +1,6 @@
+{
+  "name": "AnchorCare — Evidence-Grounded Dementia Caregiver",
+  "description": "Hybrid evidence-grounded memory assistant, deterministic policy gate, autonomous safety watchdogs, and complete Python/MongoDB/Argon implementation suite.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
