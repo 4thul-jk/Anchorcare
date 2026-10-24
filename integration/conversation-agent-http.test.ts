@@ -7,9 +7,12 @@ test('unified turn routes retain auth, draft separation, journal review and medi
  const server=app.listen(0,'127.0.0.1');await new Promise<void>(r=>server.once('listening',r));t.after(async()=>{await backend.close();await new Promise<void>(r=>server.close(()=>r()));});
  const base=`http://127.0.0.1:${(server.address()as any).port}/api/engram`;
  const call=(path:string,body?:any,key='synthetic-agent-patient')=>fetch(base+path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','X-AnchorCare-Key':key},...(body?{body:JSON.stringify(body)}:{})});
- assert.equal((await call('/agent/turn',{turn_id:'q',transcript:'Did I eat?'},'bad')).status,401);
- const response=await call('/agent/turn',{turn_id:'q',transcript:'Did I eat?'});assert.equal(response.status,200);const turn=await response.json();assert.equal(turn.intent,'question');
+ assert.equal((await call('/agent/turn',{turn_id:'q',session_id:'http_chat',transcript:'Did I eat?'},'bad')).status,401);
+ const response=await call('/agent/turn',{turn_id:'q',session_id:'http_chat',transcript:'Did I eat?'});assert.equal(response.status,200);const turn=await response.json();assert.equal(turn.intent,'question');
  const saved=await(await call('/agent/commit',{id:turn._id})).json();assert.equal(saved.state,'saved');assert.equal(saved.outputs.length,0);
+ const history=await(await call('/agent/history?session_id=http_chat')).json();assert.equal(history.turns.length,1);assert.equal(history.turns[0].transcript,'Did I eat?');assert.ok(history.turns[0].recordedAt);
+ assert.equal((await call('/agent/history?session_id=http_chat',undefined,'bad')).status,401);
+ assert.equal((await(await call('/agent/history?session_id=unrelated')).json()).turns.length,0);
  assert.equal((await call('/admin/agent/daily')).status,403);
  const daily=await(await call('/admin/agent/daily',undefined,'synthetic-agent-admin')).json();assert.equal(daily.turns.length,1);assert.equal(daily.turns[0].question,'Did I eat?');
  assert.equal((await call('/admin/agent/consolidate',{})).status,403);

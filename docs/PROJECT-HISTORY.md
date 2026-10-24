@@ -156,3 +156,8 @@ Backtracking checkpoint:
 ```
 
 Never put connection strings, tokens or real patient records in this ledger. Git history records code changes; it does not automatically retain runtime database data or establish clinical outcomes.
+
+
+## 2026-10-25 — Timestamped conversation and latest-location recall
+
+On `codex/unified-conversation-agent`, extended checkpoint `8ccdf1d` with scoped eight-turn Gemini context, persisted assistant replies, visible timestamps, pronoun/request resolution, latest self-reported location recall and single-use contact offers. Own agent collections only; teammate schemas and remote main unchanged. See [implementation and test steps](TIMESTAMPED-CONVERSATION-MEMORY.md). Application tests 144/144, TypeScript and build passed. Live Argon synthetic checks: daughter follow-up 3517 ms; Guildford location 3059 ms. No real calls or camera/microphone tests.

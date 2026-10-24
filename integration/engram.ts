@@ -101,12 +101,22 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
   const limits = new RequestLimits();
   async function answerQuestion(input:any,path:string,admin:boolean,signal?:AbortSignal,onProgress?:(phase:string)=>void,onContext?:(input:any)=>void,onRouting?:(source:string)=>void,onInterim?:(result:any)=>void){
         if(path==='/ask'){
+          const decision=await agent.contactDecision(patient,input.agent_turn_id);
+          if(decision){
+            if(!decision.accepted)return {status:'support',answer:'Okay. I will not request contact. What would you like help remembering?',conversational:true};
+            const result=await mobile.sos(patient,{idempotency_key:'contact_'+decision.id,reason:'The user accepted help contacting their emergency contact.'});
+            return {status:'support',answer:result.message,action:result,conversational:true};
+          }
           const policy=await mobile.policy(patient);
           const lost=typeof input.question==='string'&&/^(?:i am|i'm|im|i feel) lost\b/i.test(input.question.trim());
           if(explicitSos(input.question)||lost&&policy.autoSosOnLost){
             const action=await mobile.sos(patient,{idempotency_key:'spoken_'+randomUUID(),reason:lost?'The patient reported being lost. Location is unverified.':'The patient asked to contact their caregiver.'});
             return {status:'support',answer:action.message,mobileAction:action,caregiverContacted:false,locationKnown:false};
           }
+        }
+        if(path==='/ask'){
+          const contextual=await agent.contextualReply(patient,input.agent_turn_id);if(contextual)return contextual;
+          const location=await agent.locationReply(patient,input.question,input.agent_turn_id);if(location)return location;
         }
         if(path==='/ask'&&/\b(?:image|images|picture|pictures|photo|photos)\b/i.test(input.question)){
           const picture=await imageMemory.pictureAnswer(patient,input.question);
@@ -229,6 +239,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
         try{return void res.json(req.path==='/agent/turn'?await agent.turn(patient,input,stop.signal):await agent.commit(patient,input,stop.signal));}
         finally{clearTimeout(timer);res.off('close',disconnected);}
       }
+      if(req.method==='GET'&&req.path==='/agent/history')return void res.json({turns:await agent.history(patient,String(input.session_id||''))});
       const captureAsset=req.path.match(/^\/admin\/agent\/media\/([a-zA-Z0-9_-]+)$/);
       if(req.method==='GET'&&captureAsset){if(!admin)return void res.status(403).json({error:'Caregiver access required'});const asset=await agent.media(patient,captureAsset[1]);res.setHeader('Content-Type',asset.mime);res.setHeader('X-Content-Type-Options','nosniff');return void res.send(asset.bytes);}
       const imageMatch=req.path.match(/^\/images\/([a-zA-Z0-9_-]+)\/content$/);
