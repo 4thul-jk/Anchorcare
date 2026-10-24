@@ -6,7 +6,7 @@ import { mountEngram } from './engram';
 test('mounted memory service enforces server-side roles/scope and persists source-backed context', async t => {
   Object.assign(process.env, { STORE: 'memory', SUBJECT_IDS: 'demo-person-001', HOUSEHOLD_ID: 'integration-test',
     ANCHORCARE_PATIENT_ID: 'demo-person-001', ANCHORCARE_ADMIN_KEY: 'test-caregiver-key', ANCHORCARE_COMPANION_KEY: 'test-patient-key',
-    RUN_WORKER: 'false', GEMINI_API_KEY: '', GOOGLE_API_KEY: '', COMPANION_PROVIDER:'gemini', OPENROUTER_API_KEY:'' });
+    RUN_WORKER: 'false', GEMINI_API_KEY: '', GOOGLE_API_KEY: '', COMPANION_PROVIDER:'gemini', OPENROUTER_API_KEY:'', DEMO_PATIENT_AUTOLOGIN:'false' });
   const app = express(); app.use(express.json());
   const backend = await mountEngram(app);
   const server = app.listen(0, '127.0.0.1');
@@ -18,8 +18,18 @@ test('mounted memory service enforces server-side roles/scope and persists sourc
       headers: { 'Content-Type': 'application/json', 'X-AnchorCare-Key': key }, ...(payload === undefined ? {} : { body: JSON.stringify(payload) }) });
   }
   assert.equal((await call('/status', undefined, 'wrong')).status, 401);
+  process.env.DEMO_PATIENT_AUTOLOGIN='true';
+  const auto=await(await call('/status',undefined,'')).json();assert.equal(auto.actor,'patient');assert.equal(auto.demoAutoLogin,true);
+  assert.equal((await call('/admin/gemini',undefined,'')).status,403);
+  assert.equal((await call('/status',undefined,'wrong')).status,401);
+  process.env.DEMO_PATIENT_AUTOLOGIN='false';
+
+  assert.equal((await call('/memory-context',{query:'x',person_id:{$ne:null}},'test-patient-key')).status,400);
+  assert.equal((await call('/ask',[],'test-patient-key')).status,400);
+
   const capabilities = await (await call('/capabilities', undefined, 'test-patient-key')).json();
   assert.equal(capabilities.capabilities.length, 3);
+  assert.equal(capabilities.mobile.devices,undefined);assert.equal(capabilities.mobile.voiceProviderConfigured,undefined);
   const hook = await (await call('/integration-requests', {kind:'message_caregiver', idempotency_key:'api-test-request',patient_id:'foreign'}, 'test-patient-key')).json();
   assert.equal(hook.executed,false); assert.equal(hook.status,'blocked_not_connected');
   assert.equal((await call('/integration-requests', {kind:'message_caregiver',idempotency_key:'another-test'},'wrong')).status,401);

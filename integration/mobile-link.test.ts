@@ -47,3 +47,13 @@ test('mocked provider acceptance and answered status remain distinct from confir
  let calls=0;const f=fixture(async(_:string,options:any)=>{if(options.method==='POST'){calls++;return{ok:true,json:async()=>({sid:'CA'+'3'.repeat(32),status:'queued'})};}return{ok:true,json:async()=>({status:'in-progress'})};});
  await f.mobile.setPolicy('p',{...policy,liveCalls:true});await f.mobile.sos('p',{idempotency_key:'mock-success'});await f.mobile.tick();await f.mobile.tick();assert.equal(calls,1);const result=(await f.mobile.actions('p')).sos[0];assert.equal(result.callState,'in-progress');assert.match(result.message,/voicemail/);
 });
+
+test('withdrawing SOS consent blocks an already pending call before provider dispatch',async t=>{
+ const keys=['ENABLE_LIVE_SOS_CALLS','TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_FROM_NUMBER','SOS_CAREGIVER_NUMBER'];const old=Object.fromEntries(keys.map(k=>[k,process.env[k]]));t.after(()=>{for(const k of keys)if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k];});
+ Object.assign(process.env,{ENABLE_LIVE_SOS_CALLS:'true',TWILIO_ACCOUNT_SID:'AC'+'1'.repeat(32),TWILIO_AUTH_TOKEN:'test-only',TWILIO_FROM_NUMBER:'+15555550100',SOS_CAREGIVER_NUMBER:'+15555550101'});
+ let calls=0;const f=fixture(async()=>{calls++;throw Error('Must not call');});
+ await assert.rejects(f.mobile.setPolicy('p',{...policy,allowSos:false,liveCalls:true}));
+ await f.mobile.setPolicy('p',{...policy,liveCalls:true});await f.mobile.sos('p',{idempotency_key:'withdraw-pending'});
+ // Simulate an existing policy edited independently; dispatch must recheck all gates.
+ await f.store.update('mobile_policies',{householdId:'h',subjectId:'p'},{allowSos:false});await f.mobile.tick();assert.equal(calls,0);assert.equal((await f.mobile.actions('p')).sos[0].callState,'not_configured');
+});

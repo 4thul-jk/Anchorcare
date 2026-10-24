@@ -6,6 +6,7 @@ import { memoryApi } from '../lib/memoryApi';
 
 export function AtlasCompanionView({ accessKey, onAccessKeyChange }: { accessKey: string; onAccessKeyChange: (value: string) => void }) {
   const [session, setSession] = useState<any>(null);
+  const [autoConnecting,setAutoConnecting]=useState(!accessKey);
   const [question, setQuestion] = useState('');
   const [result, setResult] = useState<any>(null);
   const [prompts, setPrompts] = useState<any[]>([]);
@@ -26,6 +27,12 @@ export function AtlasCompanionView({ accessKey, onAccessKeyChange }: { accessKey
     version.current++; supportSession.current = null; cancelReply(); setReplyProgress(''); if (typeof window !== 'undefined') window.speechSynthesis?.cancel(); setSession(null); setResult(null); setPrompts([]); setReminderNotice(''); setPictures([]);setPictureNotice('');setBusy(false); submitting.current=false;
     return () => { version.current++; cancelReply(); window.speechSynthesis?.cancel(); };
   }, [accessKey]);
+  useEffect(()=>{
+    if(accessKey){setAutoConnecting(false);return;}
+    const stop=new AbortController();setAutoConnecting(true);
+    void memoryApi('', '/status',undefined,stop.signal).then(data=>{if(!stop.signal.aborted)setSession(data);}).catch(()=>{}).finally(()=>{if(!stop.signal.aborted)setAutoConnecting(false);});
+    return()=>stop.abort();
+  },[accessKey]);
   useEffect(() => {
     if (!session) return;
     const stop = new AbortController(); let inFlight = false;
@@ -78,13 +85,14 @@ export function AtlasCompanionView({ accessKey, onAccessKeyChange }: { accessKey
   return <section className="space-y-5">
     <h1 className="text-2xl font-semibold">Your memory companion</h1>
     <p className="text-slate-600">Ask about saved reports, familiar people and scheduled plans. Your care team reviews the records. This prototype uses fictional data.</p>
-    <form className="flex gap-3" onSubmit={e => { e.preventDefault(); setError(''); setBusy(true); void memoryApi(accessKey, '/status').then(setSession).catch(e => setError(e.message)).finally(() => setBusy(false)); }}>
+    {autoConnecting&&<p role="status">Opening your demo companion...</p>}
+    {!autoConnecting&&!session?.demoAutoLogin&&<form className="flex gap-3" onSubmit={e => { e.preventDefault(); setError(''); setBusy(true); void memoryApi(accessKey, '/status').then(setSession).catch(e => setError(e.message)).finally(() => setBusy(false)); }}>
       <input className={field} aria-label="Companion access key" type="password" placeholder="Memory access key" autoComplete="off" disabled={busy} value={accessKey} onChange={e => onAccessKeyChange(e.target.value)} />
       <button className={button} disabled={busy || !accessKey}>Connect companion</button>
-    </form>
+    </form>}
     {error && <p role="alert" className="bg-red-50 text-red-800 p-4 rounded-lg">{error}</p>}
     {session && <>
-      <p className="text-sm text-slate-500">{session.mode === 'mongodb' ? 'Access key accepted · Atlas mode' : 'Local test memory'} · {session.patient_id}</p>
+      <p className="text-sm text-slate-500">{session.demoAutoLogin?'Demo patient · Connected':session.mode === 'mongodb' ? 'Access key accepted · Atlas mode' : 'Local test memory'} · {session.patient_id}</p>
       <form className="rounded-xl border bg-white p-5 space-y-3" onSubmit={e => void ask(e)}>
         <label className="block font-medium" htmlFor="atlas-question">What would you like to remember?</label>
         <input id="atlas-question" className={field} value={question} onChange={e => setQuestion(e.target.value)} placeholder="Did the physiotherapist visit yesterday?" disabled={busy} />

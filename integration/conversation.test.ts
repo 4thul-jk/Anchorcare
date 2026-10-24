@@ -11,3 +11,10 @@ test('verification accepts only explicit true and fails closed on provider failu
   assert.equal(await verifyConversation({interactions:{create:async()=>{throw Error('offline')}}}, 'model','q','a','e'), false);
   assert.equal(await verifyConversation({interactions:{create:async(input:any)=>{assert.equal(input.store,false);assert.match(input.input,/evidence/);return {output_text:'{"supported":true}'}}}}, 'model','q','a','e'), true);
 });
+
+test('day summaries with five source-linked claims remain eligible for natural verification',()=>{
+ const claims=Array.from({length:5},(_,i)=>({text:'A short supported sentence '+i+'.',citations:[]}));
+ assert.ok(conversationalText({status:'supported',claims}));
+ assert.equal(conversationalText({status:'supported',claims:Array.from({length:11},()=>claims[0])}),null);
+ assert.equal(conversationalText({status:'supported',claims:Array.from({length:5},()=>({text:'x'.repeat(600)}))}),null);
+});
