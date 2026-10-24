@@ -25,3 +25,8 @@ test('family questions explain the approved relationship in plain words without 
  assert.equal(careRoleQuestion('when is my daughter visiting?'),null);assert.equal(careRoleQuestion('call my daughter'),null);
  assert.equal(careRoleAnswer({...data,sections:{personal_records:{...data.sections.personal_records,records:[]}}},'daughter').status,'no_support');
 });
+
+test('new automatically available relationship reports remain attributed to the user',()=>{
+ const data={sections:{personal_records:{complete:true,status:'available',records:[{_id:'new',sourceType:'user_report',originalText:'Maya is my daughter.'}]}}};
+ const result=careRoleAnswer(data,'daughter');assert.equal(result.status,'answered');assert.match(result.answer,/You told me/);assert.match(result.answer,/Maya/);assert.equal(result.claims[0].citations[0].recordId,'new');
+});

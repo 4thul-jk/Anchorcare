@@ -1,5 +1,7 @@
 # Unified conversation agent — 25 October 2026
 
+**Current policy update:** useful everyday information is now automatically available as a user report, including undated notes with explicit time uncertainty. Medication/safety details, active scheduling and image publication retain review gates. See [AUTOMATIC-USER-REPORTS.md](AUTOMATIC-USER-REPORTS.md). The original implementation notes below describe the initial draft-only checkpoint and are superseded on this point.
+
 Implemented on Athul's separate codex/unified-conversation-agent branch after incorporating origin/main c180062. No edits to teammate model definitions or canonical schemas, no migration, and no remote push. The active integration lives in the root port-3000 application; the separate backend/server.js and frontend/ applications are not started or treated as authoritative by this mode.
 
 ## Implemented flow

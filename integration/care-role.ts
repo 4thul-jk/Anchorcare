@@ -18,6 +18,11 @@ export function careRoleAnswer(context:any,role:string){
  const records=(section?.records||[]).filter(exact);
  const filtered={...context,sections:{personal_records:{...section,records}}};
  if(section?.status==='unavailable'||!section?.complete)return {status:'no_support',answer:'I could not check all your saved care contacts just now. Please ask your caregiver to help.',context:filtered};
+ const reports=(section.records||[]).filter((r:any)=>!r.person&&r.sourceType==='user_report'&&new RegExp('\\b'+role+'\\b','i').test(r.originalText||''));
+ if(reports.length){
+  const claims=reports.slice(0,3).map((r:any)=>({text:'You told me: "'+r.originalText+'"',citations:[{section:'personal_records',recordId:r._id,sourceId:r._id,quote:r.originalText}]}));
+  return {status:'answered',answer:claims.map((c:any)=>c.text).join(' '),claims,context:{...context,sections:{personal_records:{...section,records:reports.slice(0,3)}}},conversational:false,verification:'stored_user_report_relationship'};
+ }
  if(records.length){
   const claims=records.map((r:any)=>({text:`${r.person.name} is your ${role}.`,citations:[{section:'personal_records',recordId:r._id,sourceId:r._id,quote:r.originalText}]}));
   return {status:'answered',answer:claims.map((c:any)=>c.text).join(' '),claims,context:filtered,conversational:false,verification:'approved_exact_care_role'};

@@ -67,4 +67,4 @@ Phone delivery: see [PHONE-LINK.md](docs/PHONE-LINK.md). Background notification
 
 Free conversation-provider setup (OpenRouter or local Ollama): [FREE-MODEL-SETUP.md](docs/FREE-MODEL-SETUP.md). Gemini settings are preserved for switching back.
 
-Unified question/information conversation mode, optional camera/audio capture and daily review: [UNIFIED-CONVERSATION-AGENT.md](docs/UNIFIED-CONVERSATION-AGENT.md). Runs in the root app on port 3000; new facts remain drafts.
+Unified question/information conversation mode, optional camera/audio capture and daily review: [UNIFIED-CONVERSATION-AGENT.md](docs/UNIFIED-CONVERSATION-AGENT.md). Runs in the root app on port 3000; ordinary useful statements become recallable user reports under [the automatic-save policy](docs/AUTOMATIC-USER-REPORTS.md). Sensitive records, image labels and active reminders retain separate review gates.
