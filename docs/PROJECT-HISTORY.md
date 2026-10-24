@@ -228,3 +228,8 @@ Added shared Muse response style, bounded public-only web conversation context, 
 ## 2026-10-25 — Weather context, GPS and safe teammate-agent adaptations
 
 Fixed location-only weather replies and removed no-speech placeholders from visible chat/memory/report content. Added explicit-consent browser GPS storage/map links with freshness and accuracy. Adapted caregiver reports, safety-role exports and optional allowlisted Telegram notifications/private commands to Muse scope; supplied hardcoded bot token not copied, needs rotation. Added free Render Docker Blueprint and health endpoint; production disables local auto-login and excludes private files. No cloud service/tunnel or external message created. 169 tests, types and production build passed. See TEAM-AGENTS-AND-LOCATION.md. Hosting choice pending user: free Render, card-verified Koyeb or temporary laptop Quick Tunnel.
+
+
+## 2026-10-25 04:25 IST — Render first deployment
+
+After explicit user approval, copied only six approved existing credential values and non-secret runtime settings into Render private configuration. Created muse-anchorcare-demo on Free ($0) Docker plan, own c1617dd branch; auto-deploy off. First image build completed but Node startup failed on Atlas server selection before /healthz could pass. Render outbound CIDRs observed: 74.220.50.0/24 and 74.220.58.0/24 (shared regional ranges). Awaiting Atlas account sign-in and explicit network-access approval; no broad allowlisting, paid upgrade or successful public launch. See RENDER-DEPLOYMENT.md.
