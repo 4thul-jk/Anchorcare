@@ -59,6 +59,14 @@ The new UI's Save draft report stores the entered original note as evidence and 
 
 Source component imported from 4thul-jk/Engram-Hackathon commit **22b37bb**. Original repository history is retained there; the imported docs contain its historical checkpoints. Integration changes belong to AnchorCare's codex/engram-integration branch.
 
+## Wrong-answer correction checkpoint
+
+The original browser answer function contained hard-coded visit, medication, meal, location and time claims. It now uses conservative literal source selection and attributed quotations instead of fixture-specific prose. Today/yesterday queries filter dates in Europe/London; unsupported dates or unmatched terms abstain. Historical persisted answers without the new answer-version marker are retained but not shown as checked answers.
+
+Mixed valid/invalid and empty model citations now withhold both the generated answer and its proposed action. Valid identifiers alone no longer authorize displaying the model's free-form answer: the browser engine displays source reports instead. The Atlas answer endpoint additionally requires an exact source quote for every typed citation, verifies the quote against freshly retrieved content, and emits source-excerpt claims rather than an unchecked paraphrase. This checks quote integrity, not semantic relevance, factual truth or clinical safety. Plans remain labelled intentions.
+
+19 root tests pass, including seven new wrong-answer/quote checks; 99 component tests remain the imported suite. No new live Gemini call is claimed. The original companion remains a browser-demo source path; this fix does not migrate it to Atlas. Patient-specific failures still need to be checked against the exact reported question and saved evidence.
+
 ## Main-ledger migration checkpoint
 
 - Main navigation Memory Ledger now renders AtlasLedgerView. Access key remains in React memory, not localStorage; server-derived role/patient still control reads and writes. Shared credentials are a local prototype mechanism, not individual accounts.

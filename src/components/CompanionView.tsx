@@ -301,7 +301,7 @@ export const CompanionView: React.FC<CompanionViewProps> = ({
                 </p>
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
                   <p className="text-base font-medium text-slate-900 leading-relaxed">
-                    {latestTurn.answer}
+                    {latestTurn.answer_version === 'grounded-v2' ? latestTurn.answer : 'This is a historical browser-demo answer that has not passed the updated checks. Ask the question again to retrieve source reports.'}
                   </p>
                 </div>
               </div>
@@ -312,7 +312,7 @@ export const CompanionView: React.FC<CompanionViewProps> = ({
                   Uncertainty & Epistemic Provenance Note
                 </p>
                 <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                  {latestTurn.uncertainty}
+                  {latestTurn.answer_version === 'grounded-v2' ? latestTurn.uncertainty : 'Historical answer retained for review; its claims are not displayed as verified information.'}
                 </p>
               </div>
 
