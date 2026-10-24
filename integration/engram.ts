@@ -1,3 +1,4 @@
+import {missingMemoryReply} from './missing-memory';
 import {ConversationAgent,classifyInput} from './conversation-agent';
 import {localDemoAccess} from './demo-access';
 import {RequestLimits,credentialBucket,validateRequestObject} from './http-security';
@@ -155,8 +156,8 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
         const quickAnswer=quickRequest?visitFallback(retrieved,input.question):null;
         if(quickAnswer)onInterim?.({status:'answered',answer:quickAnswer.answer,claims:quickAnswer.claims,context:retrieved,conversational:false,verification:'approved_visit_fields_preview'});
         else onInterim?.({status:'evidence_only',context:retrieved,message:'Here are the saved reports. I am still checking the wording of the reply.'});
-        if(quickRequest&&retrieved.sections.plans?.complete&&retrieved.sections.plans.records.length===0)return {status:'no_support',answer:'I do not have a saved visit scheduled in the checked time window. Your caregiver can confirm any other plans.',context:retrieved};
-        if (Object.values(retrieved.sections).every((section: any) => section.records.length === 0)) return ({ status: 'no_support', answer: "No matching saved records were returned for that question. This does not establish that an activity did not happen.", context: retrieved });
+        if(quickRequest&&retrieved.sections.plans?.complete&&retrieved.sections.plans.records.length===0)return {status:'no_support',answer:missingMemoryReply(input.question,'missing'),context:retrieved};
+        if (Object.values(retrieved.sections).every((section: any) => section.records.length === 0)) return ({ status: 'no_support', answer:missingMemoryReply(input.question,'missing'), context: retrieved });
         if (!companion.configured && quickAnswer) return ({status:'answered',answer:quickAnswer.answer,claims:quickAnswer.claims,context:retrieved,conversational:false,verification:'approved_visit_fields_fallback'});
         if (!companion.configured) return ({ status: 'evidence_only', context: retrieved, message: 'The conversation provider is not configured. These are saved records, not a generated answer.' });
         // Use a context-aware schema and typed citations, not client-supplied evidence.
@@ -185,14 +186,14 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
           const latest = await context.retrieve(memoryInput);
           const visit = visitFallback(latest, input.question || input.query);
           if (visit) return ({ status: 'answered', answer: visit.answer, claims: visit.claims, context: latest, conversational: false, verification: 'approved_visit_fields_fallback' });
-          return ({ status: 'no_support', answer: "I couldn't establish an answer from the saved reports.", context: latest });
+          return ({ status: 'no_support', answer:missingMemoryReply(input.question || input.query), context: latest });
         }
         const candidate = conversationalText(output);
         answerPhase='verifying';onProgress?.('verifying');
         const natural = candidate ? await verifyConversation(ai, companion.model, input.question || input.query, candidate, `${checked.answer || ''}\nTime zone for displaying ISO timestamps: ${fresh.timezone}; current time: ${fresh.retrievedAt}`) : false;
         const latest = await context.retrieve(memoryInput);
         const stillChecked = checkedSourceQuotes(latest, output);
-        if (!stillChecked.allowed) return ({ status: 'no_support', answer: "I couldn't confirm that from the current saved reports. Let's check with your caregiver.", context: latest });
+        if (!stillChecked.allowed) return ({ status: 'no_support', answer:missingMemoryReply(input.question || input.query), context: latest });
         return ({ status: 'answered', answer: natural ? candidate : stillChecked.answer, claims: stillChecked.claims, context: latest,
           verification: natural ? 'source_quotes_and_model_entailment_check' : stillChecked.verification, conversational: natural });
   }
