@@ -193,3 +193,8 @@ Added linked name/relationship explanations and a spoken Who is this? button. Ne
 ## 2026-10-25 — Gemini records spoken introductions
 
 Added structured name/relationship/quote extraction and automatic timestamped identity reports. Explicit relationships create scoped reported person/personal-record links without approval gating for storage. Bare names do not overwrite patient identity or identify a camera face. Preserved teammate schemas; own agent_identity_reports collection documented in the catalogue. 152 tests and type checks passed; synthetic live Gemini extraction checked.
+
+
+## 2026-10-25 — Calm patient interface
+
+Changed the patient workspace to warm cream, sage and dark teal; increased control size/spacing, improved keyboard focus, wrapped mobile navigation and collapsed demo diagnostics, conversation preferences and saved-record metadata. Functional controls remain available; microphone/camera and save logic unchanged. Verified the live narrow-screen demo visually; TypeScript and production build passed.

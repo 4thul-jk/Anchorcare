@@ -240,7 +240,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+    <div className="anchorcare-app min-h-screen flex flex-col bg-slate-50 text-slate-900">
       {/* Strict 3-Zone Top Bar Contract */}
       <header className="flex items-center justify-between gap-8 px-6 py-4 bg-white border-b border-slate-200">
         {/* Zone 1: Single text element wordmark */}
@@ -331,7 +331,7 @@ export default function App() {
       </header>
 
       {/* Workspace Context & Actor Role Toolbar (Below the Fold) */}
-      <div className="bg-white border-b border-slate-200 px-6 py-3.5">
+      <details className="workspace-context bg-white border-b border-slate-200 px-6 py-3.5"><summary>Demo profile &amp; caregiver workspace</summary>
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
             <span className="font-semibold text-slate-900">
@@ -382,7 +382,7 @@ export default function App() {
             </div>
           </div>
         </div>
-      </div>
+      </details>
 
       {/* Main Content Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">

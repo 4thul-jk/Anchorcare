@@ -28,3 +28,57 @@
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
+
+/* Calm patient workspace: warm neutrals, sage surfaces and strong teal controls. */
+.anchorcare-app { background: #f5f4ee; color: #253d37; }
+.anchorcare-app > header { background: #fbfcf8; border-color: #e0e6dc; flex-wrap: wrap; gap: 18px; padding: 22px 5%; }
+.anchorcare-app > header > a { color: #285b4f; font-size: 24px; letter-spacing: -.7px; }
+.anchorcare-app > header nav { gap: 24px; }
+.anchorcare-app > header nav a { color: #4d665e; padding-bottom: 7px; }
+.anchorcare-app > main { max-width: 1040px; padding-top: 30px; }
+.anchorcare-app > main > button { color: #48645b; border-color: #d5dfd4; background: transparent; border-radius: 999px; }
+.workspace-context { background: #edf1e8; border-color: #e1e7db; color: #52685c; font-size: 13px; }
+.workspace-context > summary { cursor: pointer; max-width: 920px; margin: auto; }
+.workspace-context[open] > div { padding: 18px 0 6px; }
+.patient-workspace { max-width: 900px; margin-inline: auto; }
+.companion-intro { padding: 12px 0 2px; }
+.companion-intro .intro-eyebrow { color: #527769; font-size: 12px; font-weight: 700; letter-spacing: 2.5px; margin-bottom: 12px; }
+.companion-intro h1 { color: #254c40; font-size: clamp(30px,4vw,42px); line-height: 1.2; letter-spacing: -1.3px; margin-bottom: 12px; }
+.companion-intro > p:last-child { color: #62776a; font-size: 19px; line-height: 1.7; }
+.patient-workspace > p.text-slate-600 { color: #617267; line-height: 1.7; max-width: 650px; }
+.patient-workspace > p.text-sm { color: #527364; }
+.conversation-card { border-color: #dce5d8; border-radius: 26px; padding: clamp(22px,4vw,36px); box-shadow: 0 8px 32px #35514108; background: #fdfefa; }
+.conversation-card h2 { font-size: 25px; color: #294e40; letter-spacing: -.5px; }
+.conversation-lead { font-size: 16px; line-height: 1.75; color: #647469; max-width: 620px; }
+.patient-workspace button { min-height: 46px; border-radius: 13px; transition: background-color .15s,box-shadow .15s; }
+.patient-workspace button.bg-slate-900 { background: #2c6655; color: #fff; border-color: #2c6655; font-weight: 600; padding: 14px 23px; }
+.patient-workspace button.bg-slate-900:hover:not(:disabled) { background: #204e41; box-shadow: 0 4px 12px #244e4020; }
+.patient-workspace button.border { color: #365b4c; border-color: #cbd9cb; background: #fafcf6; }
+.patient-workspace button:disabled { opacity: .5; cursor: not-allowed; }
+.patient-workspace :is(button,input,summary):focus-visible { outline: 3px solid #bc7c36; outline-offset: 4px; }
+.patient-workspace input:not([type=checkbox]) { border: 1px solid #cbd9cb; background: #fff; border-radius: 14px; padding: 17px; font-size: 17px; color: #263d32; min-height: 56px; }
+.patient-workspace input::placeholder { color: #718175; }
+.patient-workspace input[type=checkbox] { width: 18px; height: 18px; accent-color: #326652; margin-right: 9px; vertical-align: middle; }
+.conversation-card > [role=status]:first-of-type { border: 0; border-radius: 13px; background: #eaf1e5; color: #3c624f; font-size: 14px; padding: 13px 17px; }
+.conversation-card > [role=status].text-red-800 { background: #f9e8df; color: #913f2a; }
+.conversation-options { border-top: 1px solid #e0e8da; border-bottom: 1px solid #e0e8da; padding: 16px 0; color: #4e6858; }
+.conversation-options summary { cursor: pointer; font-size: 15px; font-weight: 600; }
+.conversation-options summary span { display: block; margin: 5px 0 0 17px; font-size: 13px; font-weight: 400; color: #738371; }
+.conversation-options[open] > div { margin-top: 18px; }
+.conversation-options label { padding: 9px 0; line-height: 1.7; }
+.conversation-options p { padding-top: 10px; font-size: 13px; line-height: 1.8; color: #637463; }
+.conversation-card section[aria-label='Conversation history'] { border: none; padding: 14px 0; }
+.conversation-card section[aria-label='Conversation history'] > div { padding: 18px 20px; border-radius: 18px; line-height: 1.8; }
+.conversation-card .bg-blue-50 { background: #eaf2e8; }
+.conversation-card .bg-slate-100 { background: #f0f0e9; }
+.conversation-card section[aria-label='Conversation history'] .text-sm { color: #637766; font-size: 12px; margin-bottom: 6px; }
+.saved-turn-details { color: #667769; font-size: 13px; background: #f4f5ed; }
+.saved-turn-details summary { cursor: pointer; }
+.saved-turn-details[open] p { margin-top: 10px; }
+.patient-workspace > section.rounded-xl, .patient-workspace > details { border-color: #dce5d8; border-radius: 20px; background: #fbfcf7; }
+.anchorcare-app footer { background: #eef1e7; color: #6b7a6b; border-color: #dce4d5; }
+@media(max-width:640px) { .anchorcare-app > main { padding: 20px 14px; } .anchorcare-app > header { padding: 18px; } .anchorcare-app nav { width: 100%; } .conversation-card > .flex > button { flex: 1; } .conversation-card form { flex-direction: column; } }
+@media(prefers-reduced-motion:reduce) { .patient-workspace button { transition: none; } }
+
+.anchorcare-app > header > button { background: #edf2e8; color: #496454; border: 1px solid #d8e2d2; }
+@media(max-width:640px) { .anchorcare-app > header nav { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px 20px; overflow: visible; } .anchorcare-app > header nav a { white-space: normal; } }

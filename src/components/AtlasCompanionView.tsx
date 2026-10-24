@@ -83,9 +83,9 @@ export function AtlasCompanionView({ accessKey, onAccessKeyChange }: { accessKey
   const field = 'w-full rounded-lg border border-slate-300 bg-white p-3';
   const when = (value: string) => `${new Intl.DateTimeFormat('en-GB', { timeZone: result?.context?.timezone || session?.timezone || 'Europe/London', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))} (${result?.context?.timezone || session?.timezone || 'Europe/London'})`;
   const button = 'rounded-lg bg-slate-900 text-white px-4 py-3 text-sm disabled:opacity-40';
-  return <section className="space-y-5">
-    <h1 className="text-2xl font-semibold">Your memory companion</h1>
-    <p className="text-slate-600">Ask about saved reports, familiar people and scheduled plans. Your care team reviews the records. This prototype uses fictional data.</p>
+  return <section className="patient-workspace space-y-5">
+    <div className="companion-intro"><p className="intro-eyebrow">HERE WITH YOU</p><h1 className="text-2xl font-semibold">Your memory companion</h1><p>A little help remembering. One thought at a time.</p></div>
+    <p className="text-slate-600">Talk about your day, remember familiar faces, or ask what comes next. This demo uses fictional information.</p>
     {autoConnecting&&<p role="status">Opening your demo companion...</p>}
     {!autoConnecting&&!session?.demoAutoLogin&&<form className="flex gap-3" onSubmit={e => { e.preventDefault(); setError(''); setBusy(true); void memoryApi(accessKey, '/status').then(setSession).catch(e => setError(e.message)).finally(() => setBusy(false)); }}>
       <input className={field} aria-label="Companion access key" type="password" placeholder="Memory access key" autoComplete="off" disabled={busy} value={accessKey} onChange={e => onAccessKeyChange(e.target.value)} />
