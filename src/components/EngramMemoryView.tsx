@@ -1,3 +1,5 @@
+import {GeminiStatusPanel} from './GeminiStatusPanel';
+import {MobileCaregiverPanel} from './MobileCaregiverPanel';
 import { ImageCaregiverPanel } from './ImageCaregiverPanel';
 import { MedicationCaregiverPanel } from './MedicationCaregiverPanel';
 import React, { useEffect, useRef, useState } from 'react';
@@ -58,11 +60,11 @@ export function EngramMemoryView({ accessKey, onAccessKeyChange }: { accessKey?:
       <input className={field} type="password" aria-label="Memory access key" placeholder="Enter memory access key" value={key} onChange={e => { setKey(e.target.value); setSession(null); setResult(null); setPrompts([]); }} autoComplete="off" />
       <button className={button} disabled={busy || !key}>Connect</button>
     </form>
-    {session && <p role="status">Storage: <strong>{session.mode === 'mongodb' ? 'MongoDB Atlas' : 'Local in-memory test'}</strong> · Patient: {session.patient_id} · Access: {session.actor} · Gemini: {session.geminiConfigured ? 'configured; live access not yet confirmed' : 'not configured—evidence display only'}</p>}
+    {session && <p role="status">Storage: <strong>{session.mode === 'mongodb' ? 'MongoDB Atlas' : 'Local in-memory test'}</strong> · Patient: {session.patient_id} · Access: {session.actor} · Conversation provider: {session.companionProvider || 'gemini'} · {session.companionConfigured ? 'configured; live access not yet confirmed' : 'needs configuration; saved records remain available'}</p>}
     {error && <p role="alert" className="rounded-lg bg-red-50 p-4 text-red-800">{error}</p>}
     {message && <p role="status" className="rounded-lg bg-blue-50 p-4 text-blue-900">{message}</p>}
     {session && <>
-      {session.actor === 'caregiver' && <><ImageCaregiverPanel accessKey={key} /><MedicationCaregiverPanel accessKey={key} /></>}
+      {session.actor === 'caregiver' && <><GeminiStatusPanel accessKey={key} /><MobileCaregiverPanel accessKey={key} /><ImageCaregiverPanel accessKey={key} /><MedicationCaregiverPanel accessKey={key} /></>}
       <form className="rounded-xl bg-white border p-5 space-y-3" onSubmit={e => { e.preventDefault(); void act(async () => {
         setResult(await api('/answer', { query: question }));
       }); }}>

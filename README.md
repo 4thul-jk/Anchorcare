@@ -58,3 +58,11 @@ The Patient Companion uses cancellable background reply jobs with bounded transi
 ### Familiar people and memory pictures
 
 Caregiver tools now support picture uploads and approval. The companion retrieves matching approved pictures from MongoDB GridFS. See [image recall](docs/IMAGE-RECALL.md). Seed labelled fictional illustrations with `npm run demo:seed-images`; upload real authorised family pictures through the caregiver panel.
+
+### Phone receiver and SOS links
+
+Open `/phone` on a phone on the same Wi-Fi and pair it from caregiver tools. Approved pictures can forward automatically, and caregiver/demo receivers can receive SOS browser alerts. See [phone-link setup](docs/PHONE-LINK.md). Actual voice calls require private provider setup and explicit enabling; real calls are disabled in the demo.
+
+Phone delivery: see [PHONE-LINK.md](docs/PHONE-LINK.md). Background notification support and production deployment preparation: [DEPLOYMENT.md](docs/DEPLOYMENT.md). Local HTTP uses the open-page receiver; background Web Push requires HTTPS and handset opt-in. Real calls remain disabled by default.
+
+Free conversation-provider setup (OpenRouter or local Ollama): [FREE-MODEL-SETUP.md](docs/FREE-MODEL-SETUP.md). Gemini settings are preserved for switching back.

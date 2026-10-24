@@ -109,7 +109,7 @@ export function AtlasCompanionView({ accessKey, onAccessKeyChange }: { accessKey
             <p className="mt-1 text-sm text-slate-500">{r.sourceType || 'Source-linked report'}{r.outcome ? ` · ${r.outcome}` : ''}{r.occurredAt || r.start ? ` · ${when(r.occurredAt || r.start)}` : ''}</p>
             {r.evidence?.map((s: any) => <blockquote key={s.id} className="mt-2 text-sm">{s.source_type}: {s.text || 'Uninspected media; no factual claim confirmed.'}</blockquote>)}
           </article>)}
-          {name === 'episodes' && section.records.length > 1 && <details className="mt-3 text-sm"><summary>Other retrieved candidatesâ€”not verified answers</summary>{section.records.slice(1).map((r: any) => <p key={r.id} className="mt-2">{r.gist}</p>)}</details>}
+          {name === 'episodes' && section.records.length > 1 && <details className="mt-3 text-sm"><summary>Other retrieved candidates - not verified answers</summary>{section.records.slice(1).map((r: any) => <p key={r.id} className="mt-2">{r.gist}</p>)}</details>}
         </div>)}
         </details>}
       </section>}

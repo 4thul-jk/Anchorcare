@@ -6,7 +6,7 @@ import { mountEngram } from './engram';
 test('mounted memory service enforces server-side roles/scope and persists source-backed context', async t => {
   Object.assign(process.env, { STORE: 'memory', SUBJECT_IDS: 'demo-person-001', HOUSEHOLD_ID: 'integration-test',
     ANCHORCARE_PATIENT_ID: 'demo-person-001', ANCHORCARE_ADMIN_KEY: 'test-caregiver-key', ANCHORCARE_COMPANION_KEY: 'test-patient-key',
-    RUN_WORKER: 'false', GEMINI_API_KEY: '', GOOGLE_API_KEY: '' });
+    RUN_WORKER: 'false', GEMINI_API_KEY: '', GOOGLE_API_KEY: '', COMPANION_PROVIDER:'gemini', OPENROUTER_API_KEY:'' });
   const app = express(); app.use(express.json());
   const backend = await mountEngram(app);
   const server = app.listen(0, '127.0.0.1');
@@ -58,6 +58,14 @@ test('mounted memory service enforces server-side roles/scope and persists sourc
   const recalled=await(await call('/recall-images',{question:'Who is Sarah?',patient_id:'foreign'},'test-patient-key')).json();assert.equal(recalled.images.length,1);assert.equal(recalled.images[0].personName,'Sarah Example');
   await call('/admin/images/review',{image_id:uploaded.image._id,status:'draft'});
   assert.equal((await(await call('/recall-images',{question:'Who is Sarah?'},'test-patient-key')).json()).images.length,0);
+  assert.equal((await call('/admin/mobile',undefined,'test-patient-key')).status,403);
+  await call('/admin/mobile/policy',{allowImages:true,allowSos:true,autoSosOnLost:false,liveCalls:false});
+  const pairCode=await(await call('/admin/mobile/pairing',{role:'patient',label:'API phone'})).json();
+  const pairResponse=await fetch(base+'/mobile/pair',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:pairCode.code})});const paired=await pairResponse.json();assert.equal(pairResponse.status,200);
+  const phoneHeaders={'Content-Type':'application/json','X-Device-Token':paired.deviceToken};
+  assert.equal((await fetch(base+'/mobile/inbox',{headers:phoneHeaders})).status,200);
+  assert.equal((await fetch(base+'/status',{headers:phoneHeaders})).status,401);
+  await call('/admin/mobile/revoke',{device_id:paired.device._id});assert.equal((await fetch(base+'/mobile/inbox',{headers:phoneHeaders})).status,401);
   const input = { id: 'bridge1' , patient_id: 'foreign-patient', start: new Date(Date.now() - 10000).toISOString(),
     gist: 'The brass compass was put on the desk.', people: [], status: 'auto', evidence: { text: 'FICTIONAL: brass compass on desk.', source_type: 'caregiver_report' } };
   assert.equal((await call('/episodes', input, 'test-patient-key')).status, 403);

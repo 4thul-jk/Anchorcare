@@ -52,6 +52,10 @@ export class ImageMemory{
   await this.service.audit(scope,'image_reviewed',asset._id,{status});return {image:this.metadata(image)};
  }
  async list(patient:string){const records=await this.service.store.list('memory_images',this.service.scope(patient),{createdAt:-1},100);return {images:records.map((r:any)=>this.metadata(r))};}
+ async approvedMetadata(patient:string,imageId:string){
+  const asset=await this.service.store.one('memory_images',{...this.service.scope(patient),_id:id(imageId),reviewStatus:'approved'});
+  return asset&&await this.target(patient,asset.targetType,asset.targetId,true)?this.metadata(asset):null;
+ }
  async content(patient:string,imageId:string,admin:boolean){
   const scope=this.service.scope(patient),asset=await this.service.store.one('memory_images',{...scope,_id:id(imageId)});
   if(!asset||(!admin&&(asset.reviewStatus!=='approved'||!await this.target(patient,asset.targetType,asset.targetId,true))))throw new ApiError(404,'Approved image not found');

@@ -1,7 +1,8 @@
+import {checkModelCircuit,recordModelCall} from './gemini-diagnostics';
 export function retryableGeminiError(error:any):boolean{
  const status=Number(error?.status||error?.statusCode||error?.response?.status);
  const message=String(error?.message||'');
- if(/daily quota|insufficient.quota|prepay|billing|credits.depleted|quota.exceeded/i.test(message))return false;
+ if(/monthly spending cap|daily quota|insufficient.quota|prepay|billing|credits.depleted|quota.exceeded/i.test(message))return false;
  if(status)return [408,429,500,502,503,504].includes(status);
  return ['TimeoutError','RequestTimeoutError','GeminiAttemptTimeout','NetworkError'].includes(error?.name)||['ECONNRESET','ETIMEDOUT','ECONNREFUSED','EAI_AGAIN'].includes(error?.cause?.code||error?.code);
 }
@@ -39,9 +40,11 @@ export async function requestWithRetry<T>(operation:(signal:AbortSignal)=>Promis
  }
 }
 export function managedGemini(ai:any,options:{signal?:AbortSignal;onProgress?:(phase:string)=>void}={}){
- return {managed:true,interactions:{create:(params:any,callOptions:any={})=>requestWithRetry(
-  signal=>ai.interactions.create(params,{signal,retries:{strategy:'none'}}),
-  {...options,attemptMs:callOptions.attemptMs||15000})}};
+ return {managed:true,interactions:{create:async(params:any,callOptions:any={})=>{
+  const model=String(params.model||'unspecified');checkModelCircuit(model);const start=Date.now();
+  try{const result=await requestWithRetry(signal=>ai.interactions.create(params,{signal,retries:{strategy:'none'}}),{...options,attemptMs:callOptions.attemptMs||15000,maxRetries:callOptions.maxRetries??1});recordModelCall(model,start,result);return result;}
+  catch(error){recordModelCall(model,start,undefined,error);throw error;}
+ }}};
 }
 export function callGemini(ai:any,params:any,attemptMs:number){
  return (ai.managed?ai:managedGemini(ai)).interactions.create(params,{attemptMs});

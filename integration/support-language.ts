@@ -16,6 +16,6 @@ export async function naturalSupport(ai: any, model: string, question: string, f
       generation_config: { thinking_level: 'low', max_output_tokens: 512 },
       response_format: { type: 'text', mime_type: 'application/json', schema: { type: 'object', required: ['approved'], properties: { approved: { type: 'boolean' } } } }
     }, 6000);
-    return JSON.parse(check.output_text || '{}').approved === true ? { answer: answer.trim(), responseSource: 'gemini_checked' } : { answer: fallback, responseSource: 'fallback' };
+    return JSON.parse(check.output_text || '{}').approved === true ? { answer: answer.trim(), responseSource: ai.provider&&ai.provider!=='gemini'?'model_checked':'gemini_checked' } : { answer: fallback, responseSource: 'fallback' };
   } catch { return { answer: fallback, responseSource: 'fallback' }; }
 }

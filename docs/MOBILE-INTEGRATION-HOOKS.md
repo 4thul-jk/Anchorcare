@@ -1,3 +1,5 @@
+> Update: the phone-browser outbox, pairing and optional calling adapter are now implemented in [PHONE-LINK.md](PHONE-LINK.md). The older integration-requests endpoint below remains a blocked test hook and is never automatically replayed.
+
 # Companion language and future device integrations
 
 ## Current flow
