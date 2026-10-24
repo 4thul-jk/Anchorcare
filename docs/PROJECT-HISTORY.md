@@ -171,3 +171,10 @@ Replaced technical no-support wording with short, question-aware replies for med
 ## 2026-10-25 — Care-assistance offers
 
 Gemini classification now includes a current-turn quoted care-assistance hint (none/caregiver/urgent). Concerning information and questions get a plain-language caretaker contact offer, saved with timestamp and scoped five-minute consent; yes/no uses the existing single-use mobile policy hook. Clear English distress patterns also provide a fallback when inference fails. No contact is made merely by classification. Possible immediate emergencies include an emergency-services prompt rather than waiting only for a caretaker. Reference: https://www.nhs.uk/symptoms/shortness-of-breath/ . This is a prototype routing hint, not a diagnostic or validated clinical triage system. Camera consent remains separate. Tests cover no implicit SOS, current-quote validation, urgent wording and one-use consent.
+
+
+## 2026-10-25 — Gemini audio capture, session reports and inactivity check-in
+
+Replaced browser-transcript dependency with direct Gemini audio turns and save-before-inference private captures; Stop flushes final speech. Added visible hardware/session status, separately consented periodic still frames, unverified end-session reports, and server-driven 30-minute check-in with a two-minute delivered response window and existing policy-gated caretaker hook. Disconnected pages do not trigger an alert. No teammate schemas changed. See GEMINI-VOICE-SESSIONS.md for APIs, limits and backtracking details. 150 application tests, types and build passed. Live fictional WAV -> Argon exact transcription (9915 ms) -> Atlas audio, transcript, report and draft session summary passed. Actual microphone/camera and real calls were not tested. Current demo allows SOS alerts but liveCalls is false.
+
+Live verification checkpoint recorded at 2026-10-24 21:34:24 UTC (25 October in Asia/Kolkata): fictional WAV persisted to Atlas and transcribed by gemini-4-argon; no microphone/camera use or external contact.

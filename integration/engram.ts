@@ -1,3 +1,4 @@
+import {ConversationSessions} from './conversation-session';
 import {missingMemoryReply} from './missing-memory';
 import {ConversationAgent,classifyInput} from './conversation-agent';
 import {localDemoAccess} from './demo-access';
@@ -58,6 +59,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
   const medication = new MedicationReminders(service);
   const imageMemory = new ImageMemory(service);
   const mobile = new MobileLink(service);
+  const sessions=new ConversationSessions(service,agent,(patient,input)=>mobile.sos(patient,input));
   const push = new MobilePush(service,mobile);
   async function recallAndForward(input:any){const result=await imageMemory.recall(patient,input.question,input.reference_ids);await mobile.sendImages(patient,result.images);return result;}
   const routes: Record<string, { admin?: boolean; call: (input: any) => Promise<any> }> = {
@@ -229,18 +231,30 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
       const demoAccess=!key&&localDemoAccess(req,patient);
       if (!adminKey && !companionKey) return void res.status(503).json({ error: 'Configure private AnchorCare access keys before using the memory integration' });
       if (!admin && !demoAccess && !matches(key, companionKey)){limits.take('auth-failed:'+req.ip,20);return void res.status(401).json({error:'Valid memory access key required'});}
-      if(req.method==='POST'&&['/ask','/asks','/answer','/agent/turn','/agent/commit'].includes(req.path))limits.take('inference:'+credentialBucket(key),12);
+      if(req.method==='POST'&&['/ask','/asks','/answer','/agent/turn','/agent/commit'].includes(req.path))limits.take('inference:'+req.path+':'+credentialBucket(key),req.path==='/agent/commit'?40:20);
       if(req.method==='POST'&&req.path==='/recall-images')limits.take('pictures:'+credentialBucket(key),40);
       if (req.method === 'GET' && req.path === '/status') {
         return void res.json({ mode: store.mode, patient_id: patient, actor: admin ? 'caregiver' : 'patient', demoAutoLogin:demoAccess, timezone: cfg.timezone, geminiConfigured: Boolean(cfg.geminiKey), companionProvider:companion.provider, companionModel:companion.model, companionConfigured:companion.configured, contextProcessing: cfg.contextProcessing });
       }
       const input = { ...(req.method === 'GET' ? req.query : req.body), patient_id: patient };
+      if(req.method==='POST'&&req.path.startsWith('/agent/session/')){
+        limits.take('session:'+credentialBucket(key),30);const sid=String(input.session_id||'');
+        if(req.path==='/agent/session/start')return void res.json(await sessions.start(patient,input));
+        if(req.path==='/agent/session/pause')return void res.json(await sessions.pause(patient,sid));
+        if(req.path==='/agent/session/activity')return void res.json(await sessions.activity(patient,sid)||{state:'stopped'});
+        if(req.path==='/agent/session/presented')return void res.json(await sessions.presented(patient,sid));
+        if(req.path==='/agent/session/finish'){limits.take('session-finish:'+credentialBucket(key),3);return void res.json(await sessions.finish(patient,sid));}
+      }
+      if(req.method==='GET'&&req.path==='/agent/session/status')return void res.json(await sessions.status(patient,String(input.session_id||'')));
+      if(req.method==='POST'&&req.path==='/agent/capture'){limits.take('capture:'+credentialBucket(key),20);const captured=await agent.captureAudio(patient,input);await sessions.activity(patient,String(input.session_id));return void res.json(captured);}
+      if(req.method==='POST'&&req.path==='/agent/snapshot'){limits.take('snapshot:'+credentialBucket(key),6);const session=await sessions.status(patient,String(input.session_id));if(session.state!=='active'||!session.cameraConsent)return void res.status(400).json({error:'Start a camera-enabled session first'});return void res.json(await agent.captureSnapshot(patient,input));}
       if(req.method==='POST'&&['/agent/turn','/agent/commit'].includes(req.path)){
         const stop=new AbortController(),timer=setTimeout(()=>stop.abort(),60000);
         const disconnected=()=>{if(!res.writableEnded)stop.abort();};res.once('close',disconnected);
         try{return void res.json(req.path==='/agent/turn'?await agent.turn(patient,input,stop.signal):await agent.commit(patient,input,stop.signal));}
         finally{clearTimeout(timer);res.off('close',disconnected);}
       }
+      if(req.method==='GET'&&req.path==='/admin/agent/session-reports'){if(!admin)return void res.status(403).json({error:'Caregiver access required'});return void res.json({reports:await store.list('agent_session_reports',service.scope(patient),{createdAt:-1},20)});}
       if(req.method==='GET'&&req.path==='/agent/history')return void res.json({turns:await agent.history(patient,String(input.session_id||''))});
       const captureAsset=req.path.match(/^\/admin\/agent\/media\/([a-zA-Z0-9_-]+)$/);
       if(req.method==='GET'&&captureAsset){if(!admin)return void res.status(403).json({error:'Caregiver access required'});const asset=await agent.media(patient,captureAsset[1]);res.setHeader('Content-Type',asset.mime);res.setHeader('X-Content-Type-Options','nosniff');return void res.send(asset.bytes);}
@@ -308,7 +322,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
     }
   });
   let mobileRunning:Promise<any>|undefined;
-  const mobileTick=()=>{if(!mobileRunning)mobileRunning=mobile.tick().then(()=>push.tick()).then(()=>agent.nightly()).catch(()=>console.error('Mobile dispatch unavailable')).finally(()=>{mobileRunning=undefined;});};
+  const mobileTick=()=>{if(!mobileRunning)mobileRunning=sessions.tick().then(()=>mobile.tick()).then(()=>push.tick()).then(()=>agent.nightly()).catch(()=>console.error('Mobile dispatch unavailable')).finally(()=>{mobileRunning=undefined;});};
   const mobileTimer=setInterval(mobileTick,5000);
   let running: Promise<any> | undefined;
   const tick = () => { if (!running) running = service.tick().catch(() => console.error('Engram worker failed')).finally(() => { running = undefined; }); };
