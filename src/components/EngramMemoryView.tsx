@@ -1,3 +1,5 @@
+import { ImageCaregiverPanel } from './ImageCaregiverPanel';
+import { MedicationCaregiverPanel } from './MedicationCaregiverPanel';
 import React, { useEffect, useRef, useState } from 'react';
 
 export function EngramMemoryView({ accessKey, onAccessKeyChange }: { accessKey?: string; onAccessKeyChange?: (value: string) => void }) {
@@ -60,6 +62,7 @@ export function EngramMemoryView({ accessKey, onAccessKeyChange }: { accessKey?:
     {error && <p role="alert" className="rounded-lg bg-red-50 p-4 text-red-800">{error}</p>}
     {message && <p role="status" className="rounded-lg bg-blue-50 p-4 text-blue-900">{message}</p>}
     {session && <>
+      {session.actor === 'caregiver' && <><ImageCaregiverPanel accessKey={key} /><MedicationCaregiverPanel accessKey={key} /></>}
       <form className="rounded-xl bg-white border p-5 space-y-3" onSubmit={e => { e.preventDefault(); void act(async () => {
         setResult(await api('/answer', { query: question }));
       }); }}>
@@ -111,9 +114,9 @@ export function EngramMemoryView({ accessKey, onAccessKeyChange }: { accessKey?:
       </div>}
       <section className="rounded-xl bg-white border p-5 space-y-3"><h2 className="font-semibold">Current reminders</h2>
         {!prompts.length && <p className="text-sm text-slate-500">No deliverable prompts returned. Quiet hours or cooldown may apply.</p>}
-        {prompts.map(p => <div key={p._id} className="border-t pt-3"><p>{p.message}</p><div className="flex gap-2 mt-2">{['acknowledged', 'snoozed', 'dismissed'].map(action => <button key={action} className={button} disabled={busy} onClick={() => void act(async () => {
-          await api('/prompts/respond', { prompt_id: p._id, action }); setPrompts(previous => previous.filter(item => item._id !== p._id));
-        })}>{action === 'acknowledged' ? 'Okay' : action === 'snoozed' ? 'Snooze one minute' : 'Dismiss'}</button>)}</div></div>)}
+        {prompts.map(p => <div key={p._id} className="border-t pt-3"><p>{p.message}</p><div className="flex gap-2 mt-2">{(p.kind === 'medication' ? ['taken', 'not_taken', 'unsure', 'snoozed'] : ['acknowledged', 'snoozed', 'dismissed']).map(action => <button key={action} className={button} disabled={busy} onClick={() => void act(async () => {
+          await api(p.kind === 'medication' && action !== 'snoozed' ? '/medication/respond' : '/prompts/respond', { prompt_id: p._id, action }); setPrompts(previous => previous.filter(item => item._id !== p._id));
+        })}>{action === 'taken' ? 'Taken (my report)' : action === 'not_taken' ? 'Not taken' : action === 'unsure' ? 'Unsure' : action === 'acknowledged' ? 'Okay' : action === 'snoozed' ? 'Snooze one minute' : 'Dismiss'}</button>)}</div></div>)}
       </section>
     </>}
   </section>;

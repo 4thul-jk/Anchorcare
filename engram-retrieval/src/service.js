@@ -263,7 +263,8 @@ export class EngramService {
     const plan = await this.store.one("plans", scoped(scope, job.planId));
     if (!plan || plan.version !== job.planVersion || plan.reviewStatus !== "approved" || plan.eventStatus !== "planned") return { terminal: "cancelled" };
     if (plan.expiresAt <= now || job.expiresAt <= now) return { terminal: "expired" };
-    if (!["visit", "photo_album"].includes(plan.kind)) return { terminal: "cancelled" };
+    if (!["visit", "photo_album", "medication"].includes(plan.kind)) return { terminal: "cancelled" };
+    if (plan.kind === "medication" && (!plan.carePlanRef || !plan.label || plan.triggerType !== "time")) return { terminal: "cancelled" };
     let expiresAt = new Date(Math.min(+plan.expiresAt, +job.expiresAt));
     if (job.contextEventId) {
       const event = await this.store.one("context_events", scoped(scope, job.contextEventId));
@@ -301,9 +302,10 @@ export class EngramService {
             const time = new Intl.DateTimeFormat("en-GB", { timeZone: this.cfg.timezone, hour: "2-digit", minute: "2-digit" }).format(policy.plan.eventStart);
             message = `${person.name} is scheduled to visit at ${time}. Would you like to see today's plan?`;
           }
+          if (policy.plan.kind === "medication") message = "Your caregiver-approved care plan has a medication reminder now. Please check the plan. If you are unsure whether you already took it, ask your caregiver before taking anything.";
           await this.store.insert("prompts", {
             _id: `prompt_${job._id}`, ...policy.scope, jobId: job._id, planId: job.planId,
-            planVersion: job.planVersion, dedupeKey: job._id, message,
+            planVersion: job.planVersion, dedupeKey: job._id, message, kind: policy.plan.kind,
             reason: job.contextEventId ? "context_match" : "scheduled_plan",
             status: "pending", createdAt: now, availableAt: now, expiresAt: policy.expiresAt
           });
@@ -340,6 +342,8 @@ export class EngramService {
     if (prompt.status !== "pending" || prompt.expiresAt <= now || prompt.availableAt > now) throw new ApiError(409, "Prompt is no longer actionable");
     const plan = await this.store.one("plans", scoped(scope, prompt.planId));
     if (!plan || plan.version !== prompt.planVersion || plan.eventStatus !== "planned") throw new ApiError(409, "Plan changed");
+    if (plan.reviewStatus !== "approved") throw new ApiError(409, "Plan approval withdrawn");
+    if (plan.kind === "medication" && action !== "snoozed") throw new ApiError(400, "Use the medication response endpoint; acknowledgement is not a medication report");
     const changes = action === "snoozed"
       ? { availableAt: new Date(+now + 60000), lastResponse: action }
       : { status: action, respondedAt: now };

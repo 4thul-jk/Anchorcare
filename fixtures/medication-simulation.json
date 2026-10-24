@@ -1,0 +1,14 @@
+{
+  "fictional": true,
+  "patientId": "demo-person-001",
+  "carePlanReference": "FICTIONAL-CARE-PLAN-001",
+  "note": "No real medicine, dose, ingestion verification, or external contact is included.",
+  "scenarios": [
+    {"key":"taken","offset":-1800000,"response":"taken"},
+    {"key":"unsure","offset":-1200000,"response":"unsure"},
+    {"key":"not_taken","offset":-900000,"response":"not_taken"},
+    {"key":"unanswered","offset":-720000},
+    {"key":"draft","offset":90000},
+    {"key":"upcoming","offset":60000}
+  ]
+}

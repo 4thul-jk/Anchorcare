@@ -46,3 +46,15 @@ npm run build
 ```
 
 See [integration notes](docs/ANCHORCARE-INTEGRATION.md) for exact verification and remaining work. Engram APIs: [unified context](engram-retrieval/MEMORY-CONTEXT.md), [team handoff](engram-retrieval/TEAM-HANDOFF.md), [daily/personal records](engram-retrieval/DAILY-AND-PERSONAL.md), [stream setup](engram-retrieval/STREAM-PROCESSING.md).
+
+### Fictional medication reminder demo
+
+See [the medication demo guide](docs/MEDICATION-DEMO.md) for simulation data, caregiver approval, timed reminders, patient responses and caregiver review. Seed with `npm run demo:seed-medication`. All medication details are fictional; patient responses are reports, not proof of ingestion.
+
+### Automatic Gemini recovery
+
+The Patient Companion uses cancellable background reply jobs with bounded transient-error retries and fresh evidence checks. See [Gemini recovery](docs/GEMINI-RECOVERY.md) for endpoints, limits and verification. Jobs are in memory and do not survive server restart.
+
+### Familiar people and memory pictures
+
+Caregiver tools now support picture uploads and approval. The companion retrieves matching approved pictures from MongoDB GridFS. See [image recall](docs/IMAGE-RECALL.md). Seed labelled fictional illustrations with `npm run demo:seed-images`; upload real authorised family pictures through the caregiver panel.
