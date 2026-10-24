@@ -18,8 +18,12 @@ test('mounted memory service enforces server-side roles/scope and persists sourc
       headers: { 'Content-Type': 'application/json', 'X-AnchorCare-Key': key }, ...(payload === undefined ? {} : { body: JSON.stringify(payload) }) });
   }
   assert.equal((await call('/status', undefined, 'wrong')).status, 401);
+  assert.equal((await call('/memory-context',{query:'x',person_id:{$ne:null}},'test-patient-key')).status,400);
+  assert.equal((await call('/ask',[],'test-patient-key')).status,400);
+
   const capabilities = await (await call('/capabilities', undefined, 'test-patient-key')).json();
   assert.equal(capabilities.capabilities.length, 3);
+  assert.equal(capabilities.mobile.devices,undefined);assert.equal(capabilities.mobile.voiceProviderConfigured,undefined);
   const hook = await (await call('/integration-requests', {kind:'message_caregiver', idempotency_key:'api-test-request',patient_id:'foreign'}, 'test-patient-key')).json();
   assert.equal(hook.executed,false); assert.equal(hook.status,'blocked_not_connected');
   assert.equal((await call('/integration-requests', {kind:'message_caregiver',idempotency_key:'another-test'},'wrong')).status,401);

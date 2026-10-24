@@ -6,6 +6,7 @@ export class AnswerJobs{
  constructor(private lifetimeMs=10*60000,private deadlineMs=90000){}
  start(actor:string,run:(signal:AbortSignal,progress:(phase:string)=>void,onContext:(input:any)=>void,onInterim:(result:any)=>void)=>Promise<any>){
   for(const [id,j]of this.jobs)if(j.expires<Date.now()){j.controller.abort();if(j.timer)clearTimeout(j.timer);this.jobs.delete(id);}
+  if([...this.jobs.values()].filter(j=>j.actor===actor&&j.state==='pending').length>=2)throw new ApiError(429,'Two replies are already in progress; cancel one before asking again');
   if(this.jobs.size>=100)throw new ApiError(503,'Too many active conversations. Please retry shortly.');
   const job:Job={id:randomUUID(),actor,state:'pending',phase:'checking',expires:Date.now()+this.lifetimeMs,controller:new AbortController()};
   this.jobs.set(job.id,job);

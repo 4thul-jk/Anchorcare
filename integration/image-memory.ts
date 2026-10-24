@@ -1,3 +1,4 @@
+import {checkImagePixels} from './image-limits';
 import {normaliseRecallQuery,queryWords} from './query-language';
 import {randomUUID} from 'node:crypto';
 import {GridFSBucket,ObjectId} from 'mongodb';
@@ -13,7 +14,7 @@ export function validateImage(contentType:unknown,encoded:unknown){
  const jpg=bytes.length>=4&&bytes[0]===255&&bytes[1]===216&&bytes[2]===255&&bytes[bytes.length-2]===255&&bytes[bytes.length-1]===217;
  const webp=bytes.length>=16&&bytes.toString('ascii',0,4)==='RIFF'&&bytes.toString('ascii',8,12)==='WEBP';
  if(type==='image/png'&&!png||type==='image/jpeg'&&!jpg||type==='image/webp'&&!webp)throw new ApiError(400,'Image bytes do not match the declared format');
- if(png){const width=bytes.readUInt32BE(16),height=bytes.readUInt32BE(20);if(!width||!height||width*height>16000000)throw new ApiError(400,'Image dimensions are too large');}
+ checkImagePixels(bytes,type);
  return {bytes,contentType:type};
 }
 export class ImageMemory{

@@ -61,3 +61,10 @@ test('a direct image request produces a friendly reply from approved image label
  const reply=await f.images.pictureAnswer('p','show me my daughters image');assert.match(reply!.answer,/Sarah Mercer/);assert.equal(reply!.verification,'approved_image_labels');assert.equal(reply!.images.length,1);
  await f.images.review('p',{image_id:r.image._id,status:'draft'});assert.equal(await f.images.pictureAnswer('p','show me my daughters image'),null);
 });
+
+test('small encoded files cannot bypass JPEG or WebP pixel bounds',()=>{
+ const jpeg=Buffer.from('ffd8ffc00011080001000103011100021100031100ffd9','hex');assert.equal(validateImage('image/jpeg',jpeg.toString('base64')).contentType,'image/jpeg');
+ const large=Buffer.from(jpeg);large.writeUInt16BE(65535,7);large.writeUInt16BE(65535,9);assert.throws(()=>validateImage('image/jpeg',large.toString('base64')));
+ const webp=Buffer.alloc(30);webp.write('RIFF');webp.writeUInt32LE(22,4);webp.write('WEBP',8);webp.write('VP8X',12);webp.writeUInt32LE(10,16);assert.equal(validateImage('image/webp',webp.toString('base64')).contentType,'image/webp');webp.writeUIntLE(16000,24,3);webp.writeUIntLE(16000,27,3);assert.throws(()=>validateImage('image/webp',webp.toString('base64')));
+ assert.throws(()=>validateImage('image/jpeg',Buffer.from([255,216,255,217]).toString('base64')));
+});

@@ -12,6 +12,7 @@ export class MobileLink{
  async setPolicy(patient:string,input:any){
   for(const key of ['allowImages','allowSos','autoSosOnLost','liveCalls'])if(typeof input[key]!=='boolean')throw new ApiError(400,'Policy fields must be explicit booleans');
   if(input.autoSosOnLost&&!input.allowSos)throw new ApiError(400,'Enable SOS alerts before automatic lost-person SOS');
+  if(input.liveCalls&&!input.allowSos)throw new ApiError(400,'Enable SOS before enabling live calls');
   if(input.liveCalls&&!this.callConfigured())throw new ApiError(400,'Live calls require private provider credentials and an approved caregiver number');
   const scope=this.scope(patient),record={_id:hash(scope,'policy'),...scope,allowImages:input.allowImages,allowSos:input.allowSos,autoSosOnLost:input.autoSosOnLost,liveCalls:input.liveCalls,updatedAt:this.now()};
   const old=await this.service.store.one('mobile_policies',{...scope,_id:record._id});if(old)await this.service.store.update('mobile_policies',{...scope,_id:record._id},record);else await this.service.store.insert('mobile_policies',record);
@@ -98,7 +99,7 @@ export class MobileLink{
    const stale=await store.list('mobile_sos' ,{...scope,callState:'dispatching',createdAt:{$lt:new Date(+this.now()-60000)}},{},10);for(const item of stale)await store.update('mobile_sos',{...scope,_id:item._id,callState:'dispatching'},{callState:'unknown_outcome'});
    const pending=await store.list('mobile_sos',{...scope,callState:'pending'},{createdAt:1},5);
    for(const item of pending){
-    if(!policy.liveCalls||!this.callConfigured()){await store.update('mobile_sos',{...scope,_id:item._id,callState:'pending'},{callState:'not_configured'});continue;}
+    if(!policy.allowSos||!policy.liveCalls||!this.callConfigured()){await store.update('mobile_sos',{...scope,_id:item._id,callState:'pending'},{callState:'not_configured'});continue;}
     if(item.expiresAt<=this.now()){await store.update('mobile_sos',{...scope,_id:item._id,callState:'pending'},{callState:'expired'});continue;}
     const claimed=await store.update('mobile_sos',{...scope,_id:item._id,callState:'pending'},{callState:'dispatching'});if(!claimed)continue;
     // Exactly one create attempt. A timeout has unknown outcome and must never trigger automatic redial.

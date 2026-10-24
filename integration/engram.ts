@@ -1,3 +1,4 @@
+import {RequestLimits,credentialBucket,validateRequestObject} from './http-security';
 import {companionSettings,companionClient} from './companion-provider';
 import {modelDiagnostics,providerReason} from './gemini-diagnostics';
 import {careRoleQuestion,careRoleAnswer} from './care-role';
@@ -90,6 +91,7 @@ export async function mountEngram(app: Express) {
     'POST /admin/people': { admin: true, call: input => service.addPerson({ ...input, subjectId: patient }) },
   };
   const answerJobs = new AnswerJobs();
+  const limits = new RequestLimits();
   async function answerQuestion(input:any,path:string,admin:boolean,signal?:AbortSignal,onProgress?:(phase:string)=>void,onContext?:(input:any)=>void,onRouting?:(source:string)=>void,onInterim?:(result:any)=>void){
         if(path==='/ask'){
           const policy=await mobile.policy(patient);
@@ -178,10 +180,14 @@ export async function mountEngram(app: Express) {
   app.use('/api/engram', async (req: Request, res) => {
     res.setHeader('Cache-Control', 'no-store');
     try {
+      limits.take('ip:'+req.ip,240);
+      if(req.method==='POST')validateRequestObject(req.body);
+      else validateRequestObject(req.query);
       const origin = req.headers.origin;
       if (origin && origin !== (process.env.PUBLIC_APP_ORIGIN || `${req.protocol}://${req.headers.host}`)) return void res.status(403).json({ error: 'Same-origin requests only' });
       if(req.method==='POST'&&req.path==='/mobile/pair')return void res.json(await mobile.pair(req.body,req.ip||'unknown'));
       if(req.path.startsWith('/mobile/')){
+        limits.take('device-auth:'+req.ip,120);
         const device=await mobile.authenticate(req.header('X-Device-Token'));
         if(req.method==='GET'&&req.path==='/mobile/push')return void res.json(push.config());
         if(req.method==='POST'&&req.path==='/mobile/push')return void res.json(await push.subscribe(device,req.body));
@@ -200,7 +206,9 @@ export async function mountEngram(app: Express) {
       const key = req.header('X-AnchorCare-Key') || '';
       const admin = matches(key, adminKey);
       if (!adminKey && !companionKey) return void res.status(503).json({ error: 'Configure private AnchorCare access keys before using the memory integration' });
-      if (!admin && !matches(key, companionKey)) return void res.status(401).json({ error: 'Valid memory access key required' });
+      if (!admin && !matches(key, companionKey)){limits.take('auth-failed:'+req.ip,20);return void res.status(401).json({error:'Valid memory access key required'});}
+      if(req.method==='POST'&&['/ask','/asks','/answer'].includes(req.path))limits.take('inference:'+credentialBucket(key),12);
+      if(req.method==='POST'&&req.path==='/recall-images')limits.take('pictures:'+credentialBucket(key),40);
       if (req.method === 'GET' && req.path === '/status') {
         return void res.json({ mode: store.mode, patient_id: patient, actor: admin ? 'caregiver' : 'patient', timezone: cfg.timezone, geminiConfigured: Boolean(cfg.geminiKey), companionProvider:companion.provider, companionModel:companion.model, companionConfigured:companion.configured, contextProcessing: cfg.contextProcessing });
       }
@@ -211,7 +219,7 @@ export async function mountEngram(app: Express) {
         res.setHeader('Content-Type',image.contentType);res.setHeader('X-Content-Type-Options','nosniff');
         res.setHeader('Content-Disposition','inline');return void res.send(image.bytes);
       }
-      if (req.method === 'GET' && req.path === '/capabilities') return void res.json({ capabilities: capabilityManifest(), mobile:await mobile.status(patient) });
+      if (req.method === 'GET' && req.path === '/capabilities') return void res.json({ capabilities: capabilityManifest(), mobile:admin?await mobile.status(patient):{policy:await mobile.policy(patient)} });
       if (req.method === 'POST' && req.path === '/integration-requests') return void res.json(await capabilityHooks.request(patient, input, admin ? 'caregiver' : 'patient'));
       if (req.method === 'GET' && req.path === '/ledger') return void res.json(await ledger.list(patient, admin));
       const actor=`${patient}:${admin?'caregiver':'patient'}`;
@@ -264,6 +272,7 @@ export async function mountEngram(app: Express) {
       if (route.admin && !admin) return void res.status(403).json({ error: 'Caregiver memory key required' });
       res.json(await route.call(input));
     } catch (error: any) {
+      if(error.status===429)res.setHeader('Retry-After','60');
       res.status(error.status || 503).json({ error: error.status ? error.message : 'Memory or model service unavailable; no successful action confirmed' });
     }
   });
