@@ -51,3 +51,20 @@ test('contact offer acceptance is single-use, same-session, immediate and time l
  f.advance(1000);const again=await f.turn('Where am I?');await f.agent.answer('p',again._id,await f.agent.locationReply('p','Where am I?',again._id));f.advance(6*60000);
  const late=await f.turn('yes');assert.equal(await f.agent.contactDecision('p',late._id),null);
 });
+
+
+test('care concerns offer human help for statements and questions, preserving explicit single-use consent',async()=>{
+ const f=fixture();const report=await f.turn("I am not feeling well");
+ assert.equal(report.careAssistance.level,'caregiver');assert.match(report.acknowledgement,/caretaker/);assert.match(report.acknowledgement,/haven't contacted/);
+ assert.ok(report.contactOfferId);assert.equal((await f.store.list('mobile_sos')).length,0);
+ f.advance(1000);const yes=await f.turn('yes please');assert.equal((await f.agent.contactDecision('p',yes._id))!.accepted,true);
+ assert.equal(await f.agent.contactDecision('p',yes._id),null);
+ const urgent=await f.turn("I can't breathe",'urgent_chat');assert.equal(urgent.careAssistance.level,'urgent');assert.match(urgent.acknowledgement,/emergency services now/);
+ const normal=await f.turn('I want to see my daughter','normal_chat');assert.equal(normal.careAssistance.level,'none');assert.equal(normal.contactOfferId,null);
+});
+test('Gemini care flags require current-turn evidence and cannot create a contact action',async()=>{
+ const base={transcript:'Can someone help me? I feel very unsteady.',intent:'question',question_text:'Can someone help me?',items:[],topics:[]};
+ const result=checkedTurn({...base,care_assistance:{level:'caregiver',quote:'I feel very unsteady.'}});assert.equal(result.careAssistance.level,'caregiver');
+ assert.throws(()=>checkedTurn({...base,care_assistance:{level:'urgent',quote:'I have chest pain'}}));
+ const f=fixture();await f.turn('If I cannot breathe tomorrow what happens?');assert.equal((await f.store.list('agent_contact_offers')).length,0);
+});

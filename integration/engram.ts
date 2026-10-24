@@ -116,6 +116,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
           }
         }
         if(path==='/ask'){
+          const care=await agent.careReply(patient,input.agent_turn_id);if(care)return care;
           const contextual=await agent.contextualReply(patient,input.agent_turn_id);if(contextual)return contextual;
           const location=await agent.locationReply(patient,input.question,input.agent_turn_id);if(location)return location;
         }

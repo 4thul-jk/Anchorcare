@@ -166,3 +166,8 @@ On `codex/unified-conversation-agent`, extended checkpoint `8ccdf1d` with scoped
 ## 2026-10-25 — Human wording when recall is inconclusive
 
 Replaced technical no-support wording with short, question-aware replies for medication, visitors, belongings and family. Medication uncertainty remains explicit and refers to caregiver confirmation; missing records never become evidence of a completed or absent activity. Unwell reports receive an empathetic follow-up. These deterministic fallbacks add no model call or latency. Previous stored conversation replies are retained unchanged.
+
+
+## 2026-10-25 — Care-assistance offers
+
+Gemini classification now includes a current-turn quoted care-assistance hint (none/caregiver/urgent). Concerning information and questions get a plain-language caretaker contact offer, saved with timestamp and scoped five-minute consent; yes/no uses the existing single-use mobile policy hook. Clear English distress patterns also provide a fallback when inference fails. No contact is made merely by classification. Possible immediate emergencies include an emergency-services prompt rather than waiting only for a caretaker. Reference: https://www.nhs.uk/symptoms/shortness-of-breath/ . This is a prototype routing hint, not a diagnostic or validated clinical triage system. Camera consent remains separate. Tests cover no implicit SOS, current-quote validation, urgent wording and one-use consent.
