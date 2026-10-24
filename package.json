@@ -8,7 +8,7 @@
     "dev": "tsx server.ts",
     "build": "vite build",
     "start": "tsx server.ts",
-    "test": "tsx --test src/lib/caregiverEngine.test.ts src/lib/groundedAnswer.test.ts src/lib/historicalAnswer.test.tsx integration/engram.test.ts integration/ledger.test.ts integration/source-quotes.test.ts",
+    "test": "tsx --test src/lib/caregiverEngine.test.ts src/lib/groundedAnswer.test.ts src/lib/historicalAnswer.test.tsx src/lib/atlasCompanion.test.tsx integration/engram.test.ts integration/ledger.test.ts integration/source-quotes.test.ts integration/question-routing.test.ts",
     "test:memory": "node --test engram-retrieval/test/*.test.js",
     "demo:seed-atlas": "tsx integration/seed-demo.ts",
     "demo:verify-atlas": "tsx integration/verify-demo.ts",

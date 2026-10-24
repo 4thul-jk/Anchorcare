@@ -30,6 +30,10 @@ test('mounted memory service enforces server-side roles/scope and persists sourc
   response = await (await call('/answer', { query: 'brass compass', include: ['episodes'] }, 'test-patient-key')).json();
   assert.equal(response.status, 'evidence_only'); assert.equal(response.context.sections.episodes.records.length, 1);
   assert.equal(response.context.sections.episodes.records[0].evidence[0].text, input.evidence.text);
+  const asked = await (await call('/ask', { question: 'Where was the brass compass?', formattedContextLines: ['invented browser evidence'] }, 'test-patient-key')).json();
+  assert.equal(asked.status, 'evidence_only');
+  assert.equal(asked.context.sections.episodes.records[0].evidence[0].text, input.evidence.text);
+  assert.equal(JSON.stringify(asked).includes('invented browser evidence'), false);
   assert.equal((await call('/ledger/change', { id: 'bridge1', mode: 'retract', reason: 'Test' }, 'test-patient-key')).status, 403);
   assert.equal((await (await call('/ledger', undefined, 'test-patient-key')).json()).records.length, 1);
   await call('/episodes/review', { id: 'bridge1', status: 'auto' });

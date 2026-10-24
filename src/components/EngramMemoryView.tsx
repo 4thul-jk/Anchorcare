@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 
-export function EngramMemoryView() {
-  const [key, setKey] = useState('');
+export function EngramMemoryView({ accessKey, onAccessKeyChange }: { accessKey?: string; onAccessKeyChange?: (value: string) => void }) {
+  const [localKey, setLocalKey] = useState('');
+  const key = accessKey ?? localKey;
+  const setKey = onAccessKeyChange ?? setLocalKey;
   const [session, setSession] = useState<any>(null);
   const [question, setQuestion] = useState('What was recorded about the brass compass?');
   const [report, setReport] = useState('FICTIONAL report: I put the brass compass on the desk.');

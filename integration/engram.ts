@@ -9,6 +9,7 @@ import { LifeRecords } from '../engram-retrieval/src/life-records.js';
 import { MemoryContext, buildContextEvidenceInput, validateContextCitations } from '../engram-retrieval/src/memory-context.js';
 import { AtlasLedger } from './ledger';
 import { checkedSourceQuotes } from './source-quotes';
+import { routeQuestion } from './question-routing';
 
 function matches(value: string, expected?: string) {
   if (!expected) return false;
@@ -57,12 +58,14 @@ export async function mountEngram(app: Express) {
       if (!adminKey && !companionKey) return void res.status(503).json({ error: 'Configure private AnchorCare access keys before using the memory integration' });
       if (!admin && !matches(key, companionKey)) return void res.status(401).json({ error: 'Valid memory access key required' });
       if (req.method === 'GET' && req.path === '/status') {
-        return void res.json({ mode: store.mode, patient_id: patient, actor: admin ? 'caregiver' : 'patient', geminiConfigured: Boolean(cfg.geminiKey), contextProcessing: cfg.contextProcessing });
+        return void res.json({ mode: store.mode, patient_id: patient, actor: admin ? 'caregiver' : 'patient', timezone: cfg.timezone, geminiConfigured: Boolean(cfg.geminiKey), contextProcessing: cfg.contextProcessing });
       }
       const input = { ...(req.method === 'GET' ? req.query : req.body), patient_id: patient };
       if (req.method === 'GET' && req.path === '/ledger') return void res.json(await ledger.list(patient, admin));
-      if (req.method === 'POST' && req.path === '/answer') {
-        const retrieved = await context.retrieve(input);
+      if (req.method === 'POST' && ['/answer', '/ask'].includes(req.path)) {
+        const memoryInput = req.path === '/ask' ? { ...routeQuestion(input.question, cfg.timezone, service.clock()), patient_id: patient } : input;
+        const retrieved = await context.retrieve(memoryInput);
+        if (Object.values(retrieved.sections).every((section: any) => section.records.length === 0)) return void res.json({ status: 'no_support', answer: "No matching saved records were returned for that question. This does not establish that an activity did not happen.", context: retrieved });
         if (!cfg.geminiKey) return void res.json({ status: 'evidence_only', context: retrieved, message: 'Gemini is not configured. These are retrieved records, not a generated answer.' });
         // Use a context-aware schema and typed citations, not client-supplied evidence.
         const { GoogleGenAI } = await import('@google/genai');
@@ -76,7 +79,7 @@ export async function mountEngram(app: Express) {
             } } }
           } } });
         const output = JSON.parse(response.output_text || '{}');
-        const fresh = await context.retrieve(input);
+        const fresh = await context.retrieve(memoryInput);
         const checked = checkedSourceQuotes(fresh, output);
         if (output.status !== 'supported' || !checked.allowed) return void res.json({ status: 'no_support', answer: "I couldn't establish an answer from the saved reports.", context: fresh });
         return void res.json({ status: 'answered', answer: checked.answer, claims: checked.claims, context: fresh,

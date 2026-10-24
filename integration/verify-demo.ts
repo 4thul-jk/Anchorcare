@@ -8,8 +8,8 @@ const day = shiftDay(localDayKey(new Date(), cfg.timezone), -1);
 const namespace = createHash('sha256').update(`${cfg.householdId}:${patient}`).digest('hex').slice(0, 10);
 const scenarioId = `alex_demo_${namespace}_${day.replaceAll('-', '')}`;
 const base = process.env.ANCHORCARE_URL || 'http://127.0.0.1:3000';
-async function context(input: any) {
-  const response = await fetch(base + '/api/engram/memory-context', { method: 'POST', signal: AbortSignal.timeout(30000),
+async function context(input: any, path = '/memory-context') {
+  const response = await fetch(base + '/api/engram' + path, { method: 'POST', signal: AbortSignal.timeout(30000),
     headers: { 'Content-Type': 'application/json', 'X-AnchorCare-Key': process.env.ANCHORCARE_ADMIN_KEY || '' }, body: JSON.stringify(input) });
   if (!response.ok) throw Error('Demo API unavailable');
   return response.json();
@@ -31,8 +31,15 @@ try {
   const personal = await context({ query: 'Who is Sarah?', include: ['personal_records'] });
   assert.ok(personal.sections.personal_records.records.some((r: any) => r.person?.name === 'Sarah Mercer'));
   assert.equal(JSON.stringify(personal).includes('sarah.mercer@example.invalid'), false);
+  let companionAskVerified = false;
+  if (!cfg.geminiKey) {
+    const answer = await context({ question: 'Did the physiotherapist visit yesterday evening?' }, '/ask');
+    assert.equal(answer.status, 'evidence_only');
+    assert.ok(answer.context.sections.episodes.records.some((r: any) => r.id === `${scenarioId}_physio`));
+    companionAskVerified = true;
+  }
   console.log(JSON.stringify({ passed: true, verifiedAt: new Date().toISOString(), scenarioId,
-    checks: ['glasses_retrievable', 'breakfast_retrievable', 'physiotherapy_retrievable', 'draft_keys_excluded', 'medication_uncertainty_preserved', 'family_profile_retrievable', 'contact_not_exposed'], geminiCalled: false }));
+    checks: ['glasses_retrievable', 'breakfast_retrievable', 'physiotherapy_retrievable', 'draft_keys_excluded', 'medication_uncertainty_preserved', 'family_profile_retrievable', 'contact_not_exposed'], companionAskVerified, geminiCalled: false }));
 } catch {
   console.error(JSON.stringify({ passed: false, scenarioId, action: 'Run demo:seed-atlas and check running server, Atlas indexes and private access key.' })); process.exitCode = 1;
 }
