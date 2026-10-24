@@ -22,11 +22,13 @@ import { MemoryLedgerView } from './components/MemoryLedgerView';
 import { PolicyActionsView } from './components/PolicyActionsView';
 import { PythonCodebaseView } from './components/PythonCodebaseView';
 import { EngramMemoryView } from './components/EngramMemoryView';
+import { AtlasLedgerView } from './components/AtlasLedgerView';
 
 const STORAGE_KEY = 'anchorcare_state_v1';
 
 export default function App() {
   const [showMemoryBackend, setShowMemoryBackend] = useState(false);
+  const [memoryAccessKey, setMemoryAccessKey] = useState('');
   const [state, setState] = useState<CaregiverState>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -337,7 +339,7 @@ export default function App() {
             <span aria-hidden="true">·</span>
             <span className="font-mono tabular-nums">{state.person.id}</span>
             <span aria-hidden="true">·</span>
-            <span>Active Memories: <strong className="font-mono tabular-nums text-slate-900">{activeEvents.length}</strong></span>
+            <span>Sample Memories: <strong className="font-mono tabular-nums text-slate-900">{activeEvents.length}</strong></span>
             <span aria-hidden="true">·</span>
             <span>Conflicts Flagged: <strong className="font-mono tabular-nums text-slate-900">{conflictCount}</strong></span>
             <span aria-hidden="true">·</span>
@@ -403,11 +405,16 @@ export default function App() {
         )}
 
         {activeTab === 'memory' && (
+          <>
+          <AtlasLedgerView accessKey={memoryAccessKey} onAccessKeyChange={setMemoryAccessKey} />
+          <details className="mt-8 rounded-xl border p-4"><summary className="cursor-pointer text-sm">Original browser sample ledger — separate from Atlas</summary>
           <MemoryLedgerView
             state={state}
             onRecordEvent={handleRecordEvent}
             onCorrectOrRetract={handleCorrectOrRetract}
           />
+          </details>
+          </>
         )}
 
         {activeTab === 'policy' && (

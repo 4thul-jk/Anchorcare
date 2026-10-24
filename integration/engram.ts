@@ -7,6 +7,7 @@ import { TeamContract } from '../engram-retrieval/src/team-contract.js';
 import { TriggerContract } from '../engram-retrieval/src/trigger-contract.js';
 import { LifeRecords } from '../engram-retrieval/src/life-records.js';
 import { MemoryContext, buildContextEvidenceInput, validateContextCitations } from '../engram-retrieval/src/memory-context.js';
+import { AtlasLedger } from './ledger';
 
 function matches(value: string, expected?: string) {
   if (!expected) return false;
@@ -25,8 +26,10 @@ export async function mountEngram(app: Express) {
   service.scope(patient);
   const team = new TeamContract(service), triggers = new TriggerContract(service);
   const life = new LifeRecords(service), context = new MemoryContext(service);
+  const ledger = new AtlasLedger(service);
   const routes: Record<string, { admin?: boolean; call: (input: any) => Promise<any> }> = {
     'POST /episodes': { admin: true, call: input => team.ingest(input) },
+    'POST /ledger/change': { admin: true, call: input => ledger.change(patient, input) },
     'POST /episodes/review': { admin: true, call: input => team.review(input) },
     'POST /memory-context': { call: input => context.retrieve(input) },
     'POST /plans': { admin: true, call: input => triggers.create(input) },
@@ -56,6 +59,7 @@ export async function mountEngram(app: Express) {
         return void res.json({ mode: store.mode, patient_id: patient, actor: admin ? 'caregiver' : 'patient', geminiConfigured: Boolean(cfg.geminiKey), contextProcessing: cfg.contextProcessing });
       }
       const input = { ...(req.method === 'GET' ? req.query : req.body), patient_id: patient };
+      if (req.method === 'GET' && req.path === '/ledger') return void res.json(await ledger.list(patient, admin));
       if (req.method === 'POST' && req.path === '/answer') {
         const retrieved = await context.retrieve(input);
         if (!cfg.geminiKey) return void res.json({ status: 'evidence_only', context: retrieved, message: 'Gemini is not configured. These are retrieved records, not a generated answer.' });

@@ -24,7 +24,7 @@ For real Atlas storage set STORE=mongodb and configure MONGODB_URI. Keep ANCHORC
 - `/api/engram/answer` retrieves evidence on the server; it does not trust browser-supplied evidence. With no Gemini key it explicitly returns evidence_only, not a fake model answer. With a key it uses GEMINI_MODEL (default gemini-4-argon), Interactions structured output and typed citation membership checks with a fresh retrieval before response.
 - Existing daily/person records and context-trigger endpoints are mounted and documented in the component. Stream Processing remains prepared but not deployed; CONTEXT_PROCESSING stays local.
 
-The original Memory Ledger, Policy & Actions, Patient Companion and Python code viewer remain the teammate's browser/localStorage prototype. They are **not automatically synchronized** into Atlas and are not replaced by this integration. Use the persistent memory workspace for real backend operations. This avoids turning legacy browser records into approved evidence without review or silently pretending the browser's action engine is a server policy service. Full migration of those existing views is a separate step.
+The main **Memory Ledger** now loads/saves through Atlas-backed routes and supports review, linked correction and retraction history. Its collapsed original sample ledger remains separate. Patient Companion, Policy & Actions and Python reference views still use the teammate's browser demo. They are **not automatically synchronized** into Atlas. No browser sample data is silently promoted into approved memory. Companion/actions migration remains a separate step.
 
 ## Important boundaries
 
@@ -32,7 +32,7 @@ This is a local synthetic-data integration. Entered keys are shared prototype cr
 
 No audio/video upload, face recognition, guardian calling, emergency response or clinical decision system is added. Citation membership does not prove semantic support. Medical self-reports and plans retain their meaning; no medication instructions are executed. The original `/api/gemini/reason` endpoint remains the teammate's legacy client-context flow, separate from the protected `/api/engram/answer` route; do not expose this prototype publicly without migrating/authenticating legacy routes.
 
-Long-running operations can still overlap approval changes; refreshed citations reduce, but do not eliminate, races. No cross-collection correction transaction has been added. Browser demo correction tests do not prove MongoDB transaction behaviour.
+Long-running operations can still overlap approval changes; refreshed citations reduce, but do not eliminate, races. Server ledger corrections now use a MongoDB transaction covering original/replacement/source/audit writes; replacements begin as drafts. Browser demo correction tests alone do not prove this behaviour; a separate live HTTP/Atlas correction check has passed.
 
 ## Validation
 

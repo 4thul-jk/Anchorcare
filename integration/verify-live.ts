@@ -24,10 +24,24 @@ try {
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
   assert.ok(context.sections.episodes.records.some((r: any) => r.id === id));
-  await call('/episodes/review', { id, status: 'auto' });
-  assert.equal((await call('/memory-context', input)).sections.episodes.records.some((r: any) => r.id === id), false);
+  const correction = await call('/ledger/change', { id, mode: 'correct', statement: 'FICTIONAL: the copper sundial is now reported in the cupboard.', reason: 'Fictional integration correction test' });
+  assert.equal(correction.committed, true);
+  let history = await call('/ledger');
+  assert.equal(history.records.find((r: any) => r.id === id).supersededBy, correction.replacementId);
+  assert.equal(history.records.find((r: any) => r.id === correction.replacementId).reviewStatus, 'draft');
+  context = await call('/memory-context', input);
+  assert.equal(context.sections.episodes.records.some((r: any) => r.id === id || r.id === correction.replacementId), false);
+  await call('/episodes/review', { id: correction.replacementId, status: 'carer_verified' });
+  for (let i = 0; i < 30; i++) {
+    context = await call('/memory-context', input);
+    if (context.sections.episodes.records.some((r: any) => r.id === correction.replacementId)) break;
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  assert.ok(context.sections.episodes.records.some((r: any) => r.id === correction.replacementId));
+  await call('/ledger/change', { id: correction.replacementId, mode: 'retract', reason: 'Fictional test finished' });
+  assert.equal((await call('/memory-context', input)).sections.episodes.records.some((r: any) => r.id === correction.replacementId), false);
   console.log(JSON.stringify({ passed: true, verifiedAt: new Date().toISOString(), storage: status.mode, fixtureId: id,
-    checks: ['express_bridge_to_atlas', 'draft_excluded', 'approved_retrieved', 'withdrawal_excluded'], featuresUsed: context.sections.episodes.featuresUsed, geminiCalled: false }));
+    checks: ['express_bridge_to_atlas', 'draft_excluded', 'approved_retrieved', 'transactional_correction', 'linked_history', 'replacement_requires_approval', 'approved_replacement_retrieved', 'transactional_retraction'], featuresUsed: context.sections.episodes.featuresUsed, geminiCalled: false }));
 } catch {
   console.error(JSON.stringify({ passed: false, fixtureId: id, action: 'Check running backend, private access key and Atlas indexes. Provider details omitted.' })); process.exitCode = 1;
 }

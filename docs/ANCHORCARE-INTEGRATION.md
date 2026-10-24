@@ -2,7 +2,7 @@
 
 ## Result
 
-AnchorCare can now run the Engram memory/trigger module inside its existing Express process. The persistent memory workspace uses real server calls for ingestion, review, retrieval, optional Gemini generation and approved reminders. Existing browser demo screens remain separate and are labelled accordingly.
+AnchorCare runs the Engram memory/trigger module inside its existing Express process. The main Memory Ledger now uses real server calls for loading, saving, approval, withdrawal, correction and retraction. The separate persistent memory workspace adds context retrieval, optional Gemini generation and approved reminders. Original companion/actions demo views and the collapsed browser sample ledger remain separate.
 
 ```mermaid
 flowchart LR
@@ -50,11 +50,21 @@ The new UI's Save draft report stores the entered original note as evidence and 
 
 ## Remaining integration work
 
-- Original browser ledger/actions/conversations are not migrated or synchronized. In particular, localStorage histories must not be bulk-promoted into caregiver-approved memory.
+- Original browser sample ledger/actions/conversations are not bulk-migrated or synchronized. The primary Memory Ledger is now backed by the server; its original localStorage sample view remains collapsed separately.
 - Existing Python viewer code is reference material, not an executed Python service. The running integration is Node/TypeScript plus Engram JavaScript.
 - The original /api/gemini/reason endpoint still uses client-provided context and is not the new authenticated retrieval path. Replace it with the protected bridge when migrating the original companion view.
 - Shared access keys and a single server-selected patient are sufficient for local synthetic testing only; production needs individual sessions, device/user binding, HTTPS and proper authorization.
-- No MongoDB transaction-based correction/supersession workflow or medical policy verification was added. Existing TypeScript correction tests prove browser-state transitions only.
+- Server ledger correction/supersession now uses a MongoDB transaction (see checkpoint below). Original TypeScript correction tests still prove only browser-state transitions; no clinical policy verification is claimed.
 - Durable reminder scheduling, live Stream Processing, voice/hardware capture, urgent-care workflows and guardian communication are outside this merge.
 
 Source component imported from 4thul-jk/Engram-Hackathon commit **22b37bb**. Original repository history is retained there; the imported docs contain its historical checkpoints. Integration changes belong to AnchorCare's codex/engram-integration branch.
+
+## Main-ledger migration checkpoint
+
+- Main navigation Memory Ledger now renders AtlasLedgerView. Access key remains in React memory, not localStorage; server-derived role/patient still control reads and writes. Shared credentials are a local prototype mechanism, not individual accounts.
+- GET /api/engram/ledger returns scoped records and original sources; caregiver sees drafts/history, companion sees current approved records only. Reads are capped at 200 with a truncation flag. Filtering is over loaded rows, not an exhaustive database search.
+- POST /api/engram/ledger/change is caregiver-only. Corrections preserve the original and write a linked replacement draft, a new caregiver correction source and audit entry within one Atlas transaction. Retraction changes current status and writes its audit entry in one transaction. An outdated/historical target returns 409. Reason is mandatory; original evidence is retained. A retry after a lost successful response should reload the ledger rather than invent another correction.
+- UI retains draft payload/ID on a failed save response, so retry does not duplicate the report. Approval is separate; correction never inherits patient self-report as an observed fact. Actor audit currently identifies a caregiver access key, not a named individual.
+- New server tests cover contact-free source/history views, role enforcement, preservation and rejection of repeated historical changes, and session/rollback behaviour with a transaction mock.
+- Live HTTP-to-Atlas verification at **2026-10-24T01:42:33.724Z** (24 October 07:12:33.724 IST / 02:42:33.724 London) passed eight checks including actual transaction-backed correction/retraction, linked history, replacement draft exclusion, separate approval and corrected-record retrieval. Fixture integration_1792806149449 retained as retracted history. No Gemini call made.
+- The browser main ledger was loaded against Atlas and displayed retained fictional correction history. The original companion and action screens remain browser-based; completing this ledger migration does not claim those screens are migrated.
