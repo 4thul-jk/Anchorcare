@@ -10,7 +10,7 @@ Run `npx tsx integration/create-judge-link.ts` to create `tmp/JUDGE-DEMO-LINK.tx
 2. Send an invented personal fact such as “My favourite flower is a sunflower.” Wait for its save confirmation; ask “What is my favourite flower?” Confirm recall.
 3. Ask “Show me my daughter” and “Who is my physiotherapist?” Sarah Mercer is the fictional daughter; David Lee is the physiotherapist. Pictures are labelled illustrations, not photographs.
 4. Start conversation, grant microphone permission, and speak. Optionally enable visible snapshots / original audio retention. Stop and save report. Do not use actual sensitive information or other people's images.
-5. Press **Test a reminder in 30 seconds**, keep the page open, and acknowledge the fictional photo-album prompt. This uses the existing durable plan/worker/prompt mechanism, not a browser-only fake timer. The button is restricted to invited judge sessions and rate limited.
+5. Press **Test a reminder in 30 seconds**, keep the page open, and acknowledge the fictional photo-album prompt. This uses the existing durable plan/worker/prompt mechanism, not a browser-only fake timer. The button is restricted to invited judge sessions and rate limited. Quiet hours are disabled only in this isolated fictional deployment so judging can happen at any time; private patient settings remain unchanged.
 6. Optionally grant location permission on the device in use. It records that device's consented position; use only if comfortable sharing it in the fictional workspace. Do not claim someone else's current position from a past self-report.
 
 ## Limits

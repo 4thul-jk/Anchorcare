@@ -52,6 +52,9 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
   const companion = companionSettings();
   const patient = process.env.ANCHORCARE_PATIENT_ID || cfg.subjectIds[0];
   const publicMode=validatePublicDemo(cfg,patient);
+  // The isolated fictional showcase must demonstrate reminders at any judging hour.
+  // The original private workspace continues to honour its configured quiet hours.
+  if(publicMode){cfg.quietStart='00:00';cfg.quietEnd='00:00';}
   const adminKey = process.env.ANCHORCARE_ADMIN_KEY;
   const companionKey = process.env.ANCHORCARE_COMPANION_KEY;
   if (adminKey && adminKey === companionKey) throw new Error('Use distinct AnchorCare access keys');
