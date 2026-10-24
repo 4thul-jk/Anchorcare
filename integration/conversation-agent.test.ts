@@ -69,3 +69,8 @@ test('Gemini introductions save timestamped reported people without overwriting 
  const self='My name is Priya.';const other=fixture({intent:'information',question_text:null,topics:['introduction'],items:[],introductions:[{name:'Priya',relationship:null,quote:self}]});const a=await other.agent.turn('p',{turn_id:'self',transcript:self});const result=await other.agent.commit('p',{id:a._id});assert.equal((await other.store.list('people')).length,0);assert.match(result.acknowledgement,/How is Priya related/);assert.match((await other.store.list('personal_records'))[0].originalText,/unconfirmed/);
  assert.throws(()=>checkedTurn({transcript:self,intent:'information',question_text:null,topics:[],items:[],introductions:[{name:'Sarah',relationship:'daughter',quote:self}]}));
 });
+
+
+test('a standalone greeting cannot become a personal memory even if Gemini marks it useful',async()=>{
+ const f=fixture({intent:'information',question_text:null,topics:['greeting'],items:[item('hello','personal',null)]});const turn=await f.agent.turn('p',{turn_id:'hello',transcript:'hello'});const saved=await f.agent.commit('p',{id:turn._id});assert.equal(saved.memorySaved,false);assert.equal(saved.memoryDecision,'conversation_only');assert.deepEqual(saved.outputs,[]);assert.match(saved.acknowledgement,/Hello! How are you/);assert.equal((await f.store.list('personal_records')).length,0);assert.equal((await f.store.list('episodes')).length,0);assert.equal((await f.agent.consolidate('p')).created,false);
+});

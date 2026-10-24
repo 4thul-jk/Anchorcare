@@ -23,9 +23,9 @@ export function ConversationAgentPanel({accessKey,onQuestion}:{accessKey:string;
    else if(active.current)await api('/agent/session/activity',{session_id:turn.sessionId});
    setPhase(turn.audio?'Gemini is transcribing and understanding your audio...':'Gemini is understanding your words...');
    const classified=turn.classified||await api('/agent/turn',{turn_id:turn.id,session_id:turn.sessionId,...(turn.text?{transcript:turn.text}:{}),...(turn.captureId?{capture_id:turn.captureId}:turn.audio?{audio_base64:turn.audio,mime_type:turn.mime}:{})});turn.classified=classified;
-   const saved=await api('/agent/commit',{id:classified._id});pending.current=null;if(!alive.current)return;setLast(saved);if(turn.audio)setValue(saved.transcript);append('You',saved.transcript,saved.recordedAt);setCheckIn(null);
+   const saved=await api('/agent/commit',{id:classified._id});pending.current=null;if(!alive.current)return;setLast(saved.memoryDecision==='conversation_only'?null:saved);if(turn.audio)setValue(saved.transcript);append('You',saved.transcript,saved.recordedAt);setCheckIn(null);
    let answer=saved.acknowledgement;if(['question','mixed'].includes(saved.intent)||/^(?:i am lost|i'm lost|im lost|help me|call my|contact my|sos)\b/i.test(saved.transcript)){setPhase('Checking your memories...');answer=await onQuestion(saved.recallQuery||saved.question||saved.transcript,saved._id);}
-   if(answer){append('Companion',answer);await say(answer);}setPhase('Saved. Ready for your next thought.');
+   if(answer){append('Companion',answer);await say(answer);}setPhase(saved.memorySaved?'I have remembered what you shared.': 'Ready for your next thought.');
   }catch(e:any){if(alive.current){setError(e.message||'Could not finish this turn.');setPhase(turn.captureId?'Audio saved. Transcription or memory processing needs a retry.':'Recording not confirmed saved. Retry the same turn.');active.current=false;setSession(false);micOff();cameraOff();void api('/agent/session/pause',{session_id:turn.sessionId}).catch(()=>{});}}
   finally{busyRef.current=false;if(alive.current){setBusy(false);setListening(false);resume();}}
  }

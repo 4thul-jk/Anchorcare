@@ -10,6 +10,7 @@ import {LifeRecords} from '../engram-retrieval/src/life-records.js';
 import {ImageMemory,validateImage} from './image-memory';
 import {companionClient,companionSettings} from './companion-provider';
 const hash=(value:any)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
+export function smallTalk(text:string){return /^(?:(?:hello|hi|hey)(?: there| again)?|good (?:morning|afternoon|evening)|thanks(?: a lot)?|thank you(?: very much)?|okay|ok|bye|goodbye|how are you)[.!?, ]*$/i.test(text.trim());}
 const categories=['episode','daily_activity','personal','future_plan','location_report'];
 export function canAutoRemember(quote:string){return !/\b(medicines?|medications?|pills?|dos(?:e|age)|tablets?|insulin|diabet\w*|diagnos\w*|hurt|bleed\w*|injur\w*|pain|fell|fall|emergency|suicid\w*|allerg\w*|blood pressure|prescri\w*)\b/i.test(quote);}
 const activities=['medication','exercise','meal','hydration','sleep','other'];
@@ -72,6 +73,7 @@ export class ConversationAgent{
    }
    const fallback=fallbackCare(proposal.transcript);if(!proposal.careAssistance||proposal.careAssistance.level==='none')proposal.careAssistance=fallback;
    if(isConversationalRequest(proposal.transcript)&&proposal.items.length===0){proposal.intent='question';proposal.question=proposal.transcript;}
+   if(smallTalk(proposal.transcript)){proposal.intent='information';proposal.question=null;proposal.items=[];proposal.introductions=[];proposal.topics=[];}
    const resolved=resolveRecallQuery(proposal.question||proposal.transcript,proposal.proposedRecallQuery,recent);
 
    signal?.throwIfAborted();
@@ -175,8 +177,9 @@ export class ConversationAgent{
    const careResponse=await this.careReply(patient,turn._id);
    const feelingUnwell=/\b(?:not feeling (?:very )?well|feel(?:ing)? (?:unwell|ill|sick))\b/i.test(turn.transcript);
    const intro=(turn.introductions||[])[0];
-   const acknowledgement=careResponse?careResponse.answer:intro?`I have remembered the introduction: ${intro.name}`+(intro.relationship?`, described as your ${intro.relationship}.`:`. How is ${intro.name} related to you?`):feelingUnwell?"I'm sorry you're feeling unwell. Can you tell me a little more about how you're feeling?":location?`I have remembered that you told me you were at ${location}. If you ask later, I can tell you when you said it.`:outputs.some(o=>o.status==='available_report')?'Thank you for telling me. I have saved what you shared, so we can come back to it later.':outputs.length?'I have saved your report. This detail needs your caregiver to review it.':'I have kept your words in our conversation. What would you like to talk about?';
-   const saved=await this.service.store.update('agent_capture_turns',{...scope,_id:turn._id},{state:'saved',acknowledgement,careResponse,contactOfferId:careResponse?.contactOfferId||null,...(!['question','mixed'].includes(turn.intent)?{lastAnswer:acknowledgement,answeredAt:this.service.clock()}:{}),outputs,mediaIds,visualNote,locationReport:location?{location,reportedAt:turn.recordedAt,verifiedGps:false}:null,cameraConsent:input.camera_consent===true,audioRetentionConsent:input.audio_consent===true,savedAt:this.service.clock()});
+   const chatOnly=smallTalk(turn.transcript);
+   const acknowledgement=chatOnly?(/^(?:thanks|thank you)/i.test(turn.transcript)?"You're welcome. I'm here whenever you'd like to talk.":/^(?:bye|goodbye)/i.test(turn.transcript)?"Take care. I'm here whenever you need me.":"Hello! How are you doing today?"):careResponse?careResponse.answer:intro?`I have remembered the introduction: ${intro.name}`+(intro.relationship?`, described as your ${intro.relationship}.`:`. How is ${intro.name} related to you?`):feelingUnwell?"I'm sorry you're feeling unwell. Can you tell me a little more about how you're feeling?":location?`I have remembered that you told me you were at ${location}. If you ask later, I can tell you when you said it.`:outputs.some(o=>o.status==='available_report')?'Thank you for telling me. I have saved what you shared, so we can come back to it later.':outputs.length?'I have saved your report. This detail needs your caregiver to review it.':'I have kept your words in our conversation. What would you like to talk about?';
+   const saved=await this.service.store.update('agent_capture_turns',{...scope,_id:turn._id},{state:'saved',memorySaved:outputs.some(o=>o.collection!=='agent_capture_proposals'),memoryDecision:chatOnly?'conversation_only':outputs.length?'personal_report':'conversation_only',acknowledgement,careResponse,contactOfferId:careResponse?.contactOfferId||null,...(!['question','mixed'].includes(turn.intent)?{lastAnswer:acknowledgement,answeredAt:this.service.clock()}:{}),outputs,mediaIds,visualNote,locationReport:location?{location,reportedAt:turn.recordedAt,verifiedGps:false}:null,cameraConsent:input.camera_consent===true,audioRetentionConsent:input.audio_consent===true,savedAt:this.service.clock()});
    await this.service.audit(scope,'agent_turn_saved',turn._id,{intent:turn.intent,records:outputs.length,media:mediaIds.length});
    return this.publicTurn(saved);
   }finally{this.active.delete(turn._id);}
@@ -230,7 +233,7 @@ export class ConversationAgent{
  }
  async consolidate(patient:string,day?:string){
   const daily=await this.daily(patient,day);if(!daily.turns.length)return {created:false,message:'No conversation turns for that day'};
-  const selected=daily.turns.filter((t:any)=>t.state==='saved').slice(-20);if(!selected.length)return {created:false,message:'No completed turns to consolidate'};
+  const selected=daily.turns.filter((t:any)=>t.state==='saved'&&!smallTalk(t.transcript)).slice(-20);if(!selected.length)return {created:false,message:'No completed turns to consolidate'};
   const content='Conversation journal for '+daily.day+'. Questions are not confirmation that an activity happened. All statements remain user reports.\n'+selected.map((t:any)=>`[${new Date(t.recordedAt).toISOString()}] ${t.intent==='question'?'Question asked':t.intent==='mixed'?'Mixed question and report':'User report'}: ${t.transcript}`).join('\n');
   const digest=hash(selected.map((t:any)=>t._id));
   const result=await new LifeRecords(this.service).addLog({patient_id:patient,id:'journal_'+digest,activity:'other',label:'Conversation journal '+daily.day,outcome:'uncertain',occurred_at:new Date(selected.at(-1).recordedAt).toISOString(),original_text:content.slice(0,4000),source_type:'user_report',source_ref:'agent_day_'+daily.day});

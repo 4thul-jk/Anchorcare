@@ -198,3 +198,8 @@ Added structured name/relationship/quote extraction and automatic timestamped id
 ## 2026-10-25 — Calm patient interface
 
 Changed the patient workspace to warm cream, sage and dark teal; increased control size/spacing, improved keyboard focus, wrapped mobile navigation and collapsed demo diagnostics, conversation preferences and saved-record metadata. Functional controls remain available; microphone/camera and save logic unchanged. Verified the live narrow-screen demo visually; TypeScript and production build passed.
+
+
+## 2026-10-25 — Greetings are conversation, not memories
+
+Removed the universal Saved message after every turn. Standalone greetings/thanks/farewells are deterministically excluded from extracted personal memories and daily consolidation even if Gemini incorrectly marks them useful. They receive a friendly conversational reply and no saved-memory panel. Normal chat history can still retain the utterance for conversational continuity; useful assertions embedded in longer statements remain eligible. Added regression coverage.
