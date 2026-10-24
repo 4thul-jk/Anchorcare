@@ -42,7 +42,7 @@ export async function requestWithRetry<T>(operation:(signal:AbortSignal)=>Promis
 export function managedGemini(ai:any,options:{signal?:AbortSignal;onProgress?:(phase:string)=>void}={}){
  return {managed:true,interactions:{create:async(params:any,callOptions:any={})=>{
   const model=String(params.model||'unspecified');checkModelCircuit(model);const start=Date.now();
-  try{const result=await requestWithRetry(signal=>ai.interactions.create(params,{signal,retries:{strategy:'none'}}),{...options,attemptMs:callOptions.attemptMs||15000,maxRetries:callOptions.maxRetries??1});recordModelCall(model,start,result);return result;}
+  try{const result=await requestWithRetry(signal=>ai.interactions.create(params,{signal,retries:{strategy:'none'}}),{...options,attemptMs:params.model==='gemini-4-argon'?Math.max(callOptions.attemptMs||15000,(callOptions.attemptMs||15000)<=6000?25000:40000):(callOptions.attemptMs||15000),maxRetries:callOptions.maxRetries??(params.model==='gemini-4-argon'?0:1)});recordModelCall(model,start,result);return result;}
   catch(error){recordModelCall(model,start,undefined,error);throw error;}
  }}};
 }

@@ -34,3 +34,8 @@ test('jobs have a total deadline and do not recover after cancellation or expiry
  const job=jobs.start('p',async s=>{signal=s;return new Promise(()=>{});});await pause(15);assert.equal(signal.aborted,true);assert.equal(jobs.get(job.jobId,'p').state,'failed');jobs.close();
  const expired=new AnswerJobs(2);const id=expired.start('p',async()=>({answer:'done'})).jobId;await pause(8);assert.throws(()=>expired.get(id,'p'));expired.close();
 });
+
+test('Argon uses one provider attempt, rather than restarting slow reasoning',async()=>{
+ let calls=0;const ai=managedGemini({interactions:{create:async()=>{calls++;throw {status:503};}}});
+ await assert.rejects(ai.interactions.create({model:'gemini-4-argon'}));assert.equal(calls,1);
+});
