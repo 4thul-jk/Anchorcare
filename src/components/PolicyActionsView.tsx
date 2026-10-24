@@ -231,10 +231,10 @@ export const PolicyActionsView: React.FC<PolicyActionsViewProps> = ({
         <section className="lg:col-span-6 bg-white border border-slate-200 rounded-xl p-6 space-y-4">
           <div>
             <h2 className="text-base font-bold text-slate-900">
-              Policy Gate & Idempotency Test Bench (policy.py)
+              Policy Gate & Idempotency Test Bench (TypeScript demo)
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Test how policy.py routes model-proposed intents across Tier 1/2 Auto-Execute, Tier 3 Approval, and Prohibited rules
+              Test how the browser engine routes proposed intents across Auto-Execute, Approval, and Prohibited rules
             </p>
           </div>
 

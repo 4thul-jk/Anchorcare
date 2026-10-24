@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
+import { mountEngram } from './integration/engram';
 
 dotenv.config();
 
@@ -12,9 +13,10 @@ const __dirname = path.dirname(__filename);
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT || 3000);
 
   app.use(express.json({ limit: '2mb' }));
+  const engram = await mountEngram(app);
 
   app.post('/api/gemini/reason', async (req, res) => {
     const { question, formattedContextLines, actorRole, repetitionCount, personId } = req.body || {};
@@ -140,9 +142,11 @@ If the user requests a medication change, door unlock, or emergency dispatch, re
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  const server = app.listen(PORT, process.env.HOST || '127.0.0.1', () => {
     console.log(`AnchorCare server listening on http://localhost:${PORT}`);
   });
+  const stop = () => server.close(() => { void engram.close().finally(() => process.exit(0)); });
+  process.once('SIGINT', stop); process.once('SIGTERM', stop);
 }
 
 startServer();

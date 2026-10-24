@@ -149,7 +149,7 @@ export const CompanionView: React.FC<CompanionViewProps> = ({
                   Evidence-Grounded Memory Q&A
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Answers strictly from active MongoDB records using alias citations [E1..E{activeEvents.length}]
+                  Original browser demo records using alias citations [E1..E{activeEvents.length}]. Use the persistent memory workspace for Atlas retrieval.
                 </p>
               </div>
               <span className="text-xs text-slate-500 font-mono tabular-nums shrink-0">
@@ -373,7 +373,7 @@ export const CompanionView: React.FC<CompanionViewProps> = ({
                 Autonomous Safety & Memory Watchdogs
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Tier 1 background monitors running continuously over persistent MongoDB state
+                Demonstration checks over browser state; these are not continuous Atlas monitoring.
               </p>
             </div>
 
@@ -435,7 +435,7 @@ export const CompanionView: React.FC<CompanionViewProps> = ({
               <div className="pt-4 space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-semibold text-slate-900">
-                    03. Deterministic Policy Gate (policy.py)
+                    03. Deterministic Policy Demo (TypeScript)
                   </span>
                   <span className="font-mono tabular-nums text-slate-700 font-medium">
                     {state.actions.filter((a) => a.status === 'pending_approval').length} Pending Approval

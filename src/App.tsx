@@ -21,10 +21,12 @@ import { CompanionView } from './components/CompanionView';
 import { MemoryLedgerView } from './components/MemoryLedgerView';
 import { PolicyActionsView } from './components/PolicyActionsView';
 import { PythonCodebaseView } from './components/PythonCodebaseView';
+import { EngramMemoryView } from './components/EngramMemoryView';
 
 const STORAGE_KEY = 'anchorcare_state_v1';
 
 export default function App() {
+  const [showMemoryBackend, setShowMemoryBackend] = useState(false);
   const [state, setState] = useState<CaregiverState>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -381,6 +383,8 @@ export default function App() {
 
       {/* Main Content Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">
+        <button type="button" className="mb-6 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium" onClick={() => setShowMemoryBackend(v => !v)}>{showMemoryBackend ? 'Return to original demo' : 'Open persistent memory workspace'}</button>
+        {showMemoryBackend ? <EngramMemoryView /> : <>
         {activeTab === 'companion' && (
           <CompanionView
             state={state}
@@ -417,6 +421,7 @@ export default function App() {
         )}
 
         {activeTab === 'codebase' && <PythonCodebaseView />}
+        </>}
       </main>
 
       {/* Quiet Footer */}
@@ -426,7 +431,7 @@ export default function App() {
             AnchorCare — Hybrid Evidence-Grounded Memory Assistant & Policy Engine Prototype
           </span>
           <span>
-            Synthetic Data Only · Persistent Memory Source of Truth · Deterministic Python Policy Gate
+            Synthetic Data Only · Original Browser Demo + Server Memory Workspace
           </span>
         </div>
       </footer>
