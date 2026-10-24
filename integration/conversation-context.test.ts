@@ -74,3 +74,6 @@ test('daughter appearance and short name-and-image follow-ups stay on the pictur
  const first=resolveRecallQuery('i need to know how my daughter looks',null,[]);assert.equal(first.query,'Show me a picture of my daughter');
  const next=resolveRecallQuery('maybe the name and image',null,[{transcript:'i need to know how my daughter looks',recallQuery:first.query}]);assert.equal(next.query,'Show me a picture of my daughter');
 });
+
+
+test('current location excludes the next sentence containing a destination',()=>{assert.equal(currentLocationReport('I am in London Victoria Coach Station. I need to reach Guildford railway station.'),'London Victoria Coach Station');});

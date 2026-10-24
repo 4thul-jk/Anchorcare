@@ -21,9 +21,12 @@ export class GeneralHelp{
  async answer(question:string,kind:string,signal?:AbortSignal){
   if(kind==='directions'){
    const trip=question.replace(/[?!.]+$/,'').match(/\bfrom\s+(.{2,160}?)\s+to\s+(.{2,160})$/i);
-   const destination=question.match(/\b(?:get to|navigate to|directions to|route to)\s+(.{2,160}?)[?!.]*$/i)?.[1];
-   const mapUrl=trip?'https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(trip[1])+'&destination='+encodeURIComponent(trip[2]):destination?'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destination):'https://www.google.com/maps/';
-   return {status:'general_help',responseSource:'directions',answer:trip?`You can open the route from ${trip[1]} to ${trip[2]} in Maps below. Maps will show the current directions. I cannot see your live location.`:destination?`I can help you get to ${destination}. What public place are you starting from? You can also open Maps below to choose your starting point.`:'Where would you like to go, and what public place are you starting from? I cannot see your live location.',mapUrl,sources:[],conversational:true};
+   const statedOrigin=question.match(/\b(?:i am|i'm|im)\s+(?:at|in|near)\s+(.{2,160}?)(?=[.!?](?:\s|$)|\s+(?:and|but)\b|$)/i)?.[1];
+   const wantedDestination=question.match(/\b(?:need|want|would like)\s+to\s+(?:reach|go to|get to|travel to)\s+(.{2,160}?)(?=[.!?](?:\s|$)|\s+(?:and|but)\b|$)/i)?.[1];
+   const destination=wantedDestination||question.match(/\b(?:get to|navigate to|directions to|route to)\s+(.{2,160}?)[?!.]*$/i)?.[1];
+   const origin=trip?.[1]||statedOrigin,target=trip?.[2]||destination;
+   const mapUrl=origin&&target?'https://www.google.com/maps/dir/?api=1&origin='+encodeURIComponent(origin)+'&destination='+encodeURIComponent(target):destination?'https://www.google.com/maps/dir/?api=1&destination='+encodeURIComponent(destination):'https://www.google.com/maps/';
+   return {status:'general_help',responseSource:'directions',answer:origin&&target?`You told me you are at ${origin} and want to reach ${target}. You can open this route in Maps below for current directions.`:destination?`I can help you get to ${destination}. What public place are you starting from? You can also open Maps below to choose your starting point.`:'Where would you like to go, and what public place are you starting from? I cannot see your live location.',mapUrl,sources:[],conversational:true};
   }
   if(/\b(?:near me|around me|my area|weather here)\b/i.test(question))return {status:'general_help',responseSource:'location_needed',answer:'Which town or public landmark should I check? I cannot see your current location.',sources:[],conversational:true};
   const settings=companionSettings();if(settings.provider!=='gemini')return {status:'general_help',answer:'Web answers need the Gemini connection. Your saved memories are still available.',responseSource:'web_unavailable',sources:[]};

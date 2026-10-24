@@ -50,7 +50,7 @@ export function AtlasCompanionView({ accessKey, onAccessKeyChange }: { accessKey
   }, [session, accessKey]);
   function ask(e: React.FormEvent) {e.preventDefault();void submitQuestion(question);}
   async function submitQuestion(value:string,agentTurnId?:string) {
-    if (busy || submitting.current || !value.trim()) return; submitting.current=true; setQuestion(value); window.speechSynthesis?.cancel(); setError(''); setResult(null); setBusy(true);
+    if (!value.trim())throw Error('Please say or type your question.');if(submitting.current)throw Error('Your words are saved. Another reply is still finishing; retry this question in a moment.'); submitting.current=true; setQuestion(value); window.speechSynthesis?.cancel(); setError(''); setResult(null); setBusy(true);
     const generation = ++version.current, stop = new AbortController(); cancelReply(); activeRequest.current = stop;
     let previewShown=false;
     setPictures([]);setPictureNotice('');

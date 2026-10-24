@@ -213,3 +213,8 @@ Fixed the demonstrated daughter-look/name-and-image sequence losing its referent
 ## 2026-10-25 — General Gemini web help and Maps handoff
 
 Added public/general/directions routing alongside private recall, Gemini Google Search tools with provider source citations, friendly failure handling, labelled web-source UI and explicit-place Maps route links. Only current public questions enter search; private memory/history/location are not attached. Voice input uses the same path. Live Argon Tower Bridge test returned four citations in 7783 ms. 159 tests and type checks passed. See GENERAL-HELP.md for limits, API behaviour and demo prompts.
+
+
+## 2026-10-25 — Spoken route details were heard but ignored
+
+Inspected the active demo: voice transcription correctly contained London Victoria Coach Station and Guildford railway station, but directions parsing only recognised from/to phrasing and repeated the origin/destination question. Added explicit I am in/at/near and need/want to reach/go to/get to forms, producing the correct Maps link from the current utterance. Location reports no longer swallow the following destination sentence. Also made a missing reply an explicit retryable failure; saved turns survive retries without duplicate chat entries. Okay now acknowledges the user instead of restarting the greeting. 161 tests and type checks passed, including the exact spoken example. Existing chat history was not rewritten.

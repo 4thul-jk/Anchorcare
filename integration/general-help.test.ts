@@ -17,3 +17,10 @@ test('directions use explicit origin/destination and nearby requests ask for loc
  const route=await helper.answer('Directions from Guildford station to Guildford castle','directions');assert.match(route.mapUrl!,/origin=Guildford%20station&destination=Guildford%20castle/);assert.doesNotMatch(route.answer,/I know where you are/);
  assert.equal((await helper.answer('weather near me','general')).responseSource,'location_needed');
 });
+
+
+test('spoken origin plus need-to-reach destination is used instead of asking again',async()=>{
+ const helper=new GeneralHelp(async()=>{throw Error('No public search needed');});
+ const result=await helper.answer('I am in London Victoria Coach Station. I need to reach Guildford railway station.','directions');assert.match(result.mapUrl!,/origin=London%20Victoria%20Coach%20Station&destination=Guildford%20railway%20station/);assert.match(result.answer,/You told me you are at London Victoria Coach Station/);
+ const destination=await helper.answer('I need to go to Guildford. I need to know how to get there.','directions');assert.match(destination.answer,/get to Guildford/);assert.match(destination.answer,/starting from/);
+});
