@@ -1,0 +1,52 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {ConversationAgent,checkedTurn,audioBytes} from './conversation-agent';
+import {MemoryStore} from '../engram-retrieval/src/store.js';
+import {EngramService} from '../engram-retrieval/src/service.js';
+const now=new Date('2026-10-25T12:00:00Z');
+function fixture(output:any){const store=new MemoryStore(),service=new EngramService(store,{householdId:'h',subjectIds:['p','other'],timezone:'Europe/London',embeddingMode:'auto'},()=>new Date(now));let calls=0;const agent=new ConversationAgent(service,async input=>{calls++;return checkedTurn(output,input.transcript);});return {store,service,agent,calls:()=>calls};}
+const item=(quote:string,category='episode',time:string|null='2026-10-24T09:00:00Z')=>({quote,category,title:'Fictional report',activity:'exercise',outcome:'reported_done',event_time:time});
+test('classifier rejects invented quotes and prevents question-to-fact conversion',()=>{
+ const base={transcript:'Did I take medicine?',intent:'question',question_text:'Did I take medicine?',topics:['medicine'],items:[]};assert.equal(checkedTurn(base).intent,'question');
+ assert.throws(()=>checkedTurn({...base,items:[item('I took medicine')]}));assert.throws(()=>checkedTurn({...base,intent:'information',items:[item('Did I take medicine?')]}));
+ assert.throws(()=>checkedTurn({...base,question_text:'Who is Sarah?'}));assert.throws(()=>audioBytes({mime_type:'image/jpeg',audio_base64:'AA=='}));
+});
+test('past report is an idempotent draft, with original source preserved and foreign scope denied',async()=>{
+ const quote='On 2026-10-24 at 10:00 I walked at London Bridge.';const f=fixture({transcript:quote,intent:'information',question_text:null,topics:['walk'],items:[item(quote)]});
+ const turn=await f.agent.turn('p',{turn_id:'past_1',transcript:quote});const again=await f.agent.turn('p',{turn_id:'past_1',transcript:quote});assert.equal(turn._id,again._id);assert.equal(f.calls(),1);
+ await assert.rejects(f.agent.turn('p',{turn_id:'past_1',transcript:'changed'}));
+ const saved=await f.agent.commit('p',{id:turn._id});await f.agent.commit('p',{id:turn._id});const episodes=await f.store.list('episodes');assert.equal(episodes.length,1);assert.equal(episodes[0].reviewStatus,'draft');assert.equal(saved.outputs[0].collection,'episodes');assert.equal((await f.store.list('sources'))[0].content,quote);
+ await assert.rejects(f.agent.commit('other',{id:turn._id}));
+});
+test('missing event time becomes a review proposal instead of a fabricated event',async()=>{
+ const quote='I went for a walk.';const f=fixture({intent:'information',question_text:null,topics:['walk'],items:[item(quote)]});const t=await f.agent.turn('p',{turn_id:'unclear',transcript:quote});assert.equal(t.items[0].eventTime,null);const saved=await f.agent.commit('p',{id:t._id});assert.equal(saved.outputs[0].status,'needs_review');assert.equal((await f.store.list('episodes')).length,0);
+ const p=(await f.store.list('agent_capture_proposals'))[0];await f.agent.resolve('p',{proposal_id:p._id,event_time:'2026-10-24T10:00:00Z'});assert.equal((await f.store.list('episodes'))[0].reviewStatus,'draft');
+});
+test('personal information and daily activities use existing draft collections and preserve negation',async()=>{
+ const personal='Sarah is my daughter.';let f=fixture({intent:'information',question_text:null,topics:['family'],items:[item(personal,'personal',null)]});let t=await f.agent.turn('p',{turn_id:'person',transcript:personal});await f.agent.commit('p',{id:t._id});assert.equal((await f.store.list('personal_records'))[0].reviewStatus,'draft');
+ const quote='On 2026-10-24 at 10:00 I did not exercise.';f=fixture({intent:'information',question_text:null,topics:['exercise'],items:[item(quote,'daily_activity')]});t=await f.agent.turn('p',{turn_id:'daily',transcript:quote});await f.agent.commit('p',{id:t._id});const log=(await f.store.list('daily_logs'))[0];assert.equal(log.outcome,'reported_not_done');assert.equal(log.reviewStatus,'draft');
+});
+test('future intentions do not become completed episodes or active reminders without caregiver scheduling',async()=>{
+ const quote='Sarah will visit on 2026-10-26 at 10:00.';const f=fixture({intent:'information',question_text:null,topics:['visit'],items:[item(quote,'future_plan','2026-10-26T10:00:00Z')]});const t=await f.agent.turn('p',{turn_id:'future',transcript:quote});await f.agent.commit('p',{id:t._id});assert.equal((await f.store.list('episodes')).length,0);assert.equal((await f.store.list('plans')).length,0);
+ const p=(await f.store.list('agent_capture_proposals'))[0];await assert.rejects(f.agent.resolve('p',{proposal_id:p._id,event_time:'2026-10-26T10:00:00Z'}));
+ await f.store.insert('people',{_id:'sarah',householdId:'h',subjectId:'p',name:'Sarah',relationship:'daughter'});
+ await f.agent.resolve('p',{proposal_id:p._id,event_time:'2026-10-26T10:00:00Z',action:'schedule_visit',confirm:'carer_verified',person_id:'sarah'});assert.equal((await f.store.list('plans'))[0].reviewStatus,'approved');
+});
+test('question journal and daily consolidation never assert medication was taken',async()=>{
+ const quote='Did I take my medicine?';const f=fixture({intent:'question',question_text:quote,topics:['medicine question'],items:[]});const t=await f.agent.turn('p',{turn_id:'question',transcript:quote});await f.agent.commit('p',{id:t._id});assert.equal((await f.store.list('episodes')).length,0);
+ await f.agent.answer('p',t._id,{status:'no_support',claims:[]});const result=await f.agent.consolidate('p');assert.equal(result.status,'draft');const log=(await f.store.list('daily_logs'))[0];assert.match(log.originalText,/Question asked: Did I take/);assert.match(log.originalText,/not confirmation/);assert.equal(log.outcome,'uncertain');assert.equal(log.reviewStatus,'draft');await f.agent.consolidate('p');assert.equal((await f.store.list('daily_logs')).length,1);
+});
+test('raw media retention is consent gated and stays scoped and private',async()=>{
+ const quote='Did I eat?';const f=fixture({intent:'question',question_text:quote,topics:['meal question'],items:[]});const t=await f.agent.turn('p',{turn_id:'media',transcript:quote});await assert.rejects(f.agent.commit('p',{id:t._id,audio_base64:'AAAA',mime_type:'audio/wav'}));await assert.rejects(f.agent.commit('p',{id:t._id,image_base64:'AAAA',camera_consent:true}));
+ const saved=await f.agent.commit('p',{id:t._id,audio_base64:'AAAA',mime_type:'audio/wav',audio_consent:true});assert.equal(saved.mediaIds.length,1);await assert.rejects(f.agent.media('other',saved.mediaIds[0]));const daily=await f.agent.daily('p');assert.equal('data'in daily.assets[0],false);assert.equal('gridFsId'in daily.assets[0],false);
+});
+
+test('camera captures remain private drafts until caregiver links an approved person',async t=>{
+ const previous=process.env.COMPANION_PROVIDER;process.env.COMPANION_PROVIDER='ollama';t.after(()=>{if(previous===undefined)delete process.env.COMPANION_PROVIDER;else process.env.COMPANION_PROVIDER=previous;});
+ const quote='Sarah is my daughter.';const f=fixture({intent:'information',question_text:null,topics:['family'],items:[item(quote,'personal',null)]});
+ const turn=await f.agent.turn('p',{turn_id:'camera',transcript:quote});const jpeg=Buffer.from('ffd8ffc00011080001000103011100021100031100ffd9','hex').toString('base64');
+ const saved=await f.agent.commit('p',{id:turn._id,image_base64:jpeg,camera_consent:true});assert.equal(saved.mediaIds.length,1);assert.equal((await f.store.list('memory_images')).length,0);
+ await f.store.insert('people',{_id:'sarah',householdId:'h',subjectId:'p',name:'Sarah',relationship:'daughter'});
+ await assert.rejects(f.agent.curateImage('p',{asset_id:saved.mediaIds[0],target_type:'person',target_id:'sarah',caption:'Fictional test',confirm:'carer_verified'}));
+ await f.store.insert('personal_records',{_id:'approved_sarah',householdId:'h',subjectId:'p',personId:'sarah',originalText:'Sarah is the daughter.',reviewStatus:'approved'});
+ await f.agent.curateImage('p',{asset_id:saved.mediaIds[0],target_type:'person',target_id:'sarah',caption:'Fictional test',confirm:'carer_verified'});assert.equal((await f.store.list('memory_images'))[0].reviewStatus,'approved');
+});

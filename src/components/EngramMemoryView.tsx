@@ -1,3 +1,4 @@
+import {AgentReviewPanel} from './AgentReviewPanel';
 import {GeminiStatusPanel} from './GeminiStatusPanel';
 import {MobileCaregiverPanel} from './MobileCaregiverPanel';
 import { ImageCaregiverPanel } from './ImageCaregiverPanel';
@@ -64,7 +65,7 @@ export function EngramMemoryView({ accessKey, onAccessKeyChange }: { accessKey?:
     {error && <p role="alert" className="rounded-lg bg-red-50 p-4 text-red-800">{error}</p>}
     {message && <p role="status" className="rounded-lg bg-blue-50 p-4 text-blue-900">{message}</p>}
     {session && <>
-      {session.actor === 'caregiver' && <><GeminiStatusPanel accessKey={key} /><MobileCaregiverPanel accessKey={key} /><ImageCaregiverPanel accessKey={key} /><MedicationCaregiverPanel accessKey={key} /></>}
+      {session.actor === 'caregiver' && <><AgentReviewPanel accessKey={key}/><GeminiStatusPanel accessKey={key} /><MobileCaregiverPanel accessKey={key} /><ImageCaregiverPanel accessKey={key} /><MedicationCaregiverPanel accessKey={key} /></>}
       <form className="rounded-xl bg-white border p-5 space-y-3" onSubmit={e => { e.preventDefault(); void act(async () => {
         setResult(await api('/answer', { query: question }));
       }); }}>

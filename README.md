@@ -66,3 +66,5 @@ Open `/phone` on a phone on the same Wi-Fi and pair it from caregiver tools. App
 Phone delivery: see [PHONE-LINK.md](docs/PHONE-LINK.md). Background notification support and production deployment preparation: [DEPLOYMENT.md](docs/DEPLOYMENT.md). Local HTTP uses the open-page receiver; background Web Push requires HTTPS and handset opt-in. Real calls remain disabled by default.
 
 Free conversation-provider setup (OpenRouter or local Ollama): [FREE-MODEL-SETUP.md](docs/FREE-MODEL-SETUP.md). Gemini settings are preserved for switching back.
+
+Unified question/information conversation mode, optional camera/audio capture and daily review: [UNIFIED-CONVERSATION-AGENT.md](docs/UNIFIED-CONVERSATION-AGENT.md). Runs in the root app on port 3000; new facts remain drafts.

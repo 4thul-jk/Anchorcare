@@ -1,3 +1,4 @@
+import {ConversationAgentPanel} from './ConversationAgentPanel';
 import { SavedMemoryImage } from './SavedMemoryImage';
 import { runCompanionJob } from '../lib/companionJob';
 import { VoiceQuestionInput } from './VoiceQuestionInput';
@@ -48,7 +49,7 @@ export function AtlasCompanionView({ accessKey, onAccessKeyChange }: { accessKey
     return () => { stop.abort(); clearInterval(timer); };
   }, [session, accessKey]);
   function ask(e: React.FormEvent) {e.preventDefault();void submitQuestion(question);}
-  async function submitQuestion(value:string) {
+  async function submitQuestion(value:string,agentTurnId?:string) {
     if (busy || submitting.current || !value.trim()) return; submitting.current=true; setQuestion(value); window.speechSynthesis?.cancel(); setError(''); setResult(null); setBusy(true);
     const generation = ++version.current, stop = new AbortController(); cancelReply(); activeRequest.current = stop;
     let previewShown=false;
@@ -70,12 +71,12 @@ export function AtlasCompanionView({ accessKey, onAccessKeyChange }: { accessKey
     loadPictures();
     try {
       setReplyProgress('I am checking your saved information...');
-      const data = await runCompanionJob(accessKey,{question:value,supportSession:supportSession.current},{signal:stop.signal,
+      const data = await runCompanionJob(accessKey,{question:value,supportSession:supportSession.current,agent_turn_id:agentTurnId},{signal:stop.signal,
         onJob:id=>{if(generation===version.current&&!stop.signal.aborted)currentJob.current={id,key:accessKey};else void memoryApi(accessKey,'/asks/'+id+'/cancel',{}).catch(()=>{});},
         onProgress:message=>{if(generation===version.current)setReplyProgress(previewShown?'You can ask another question while I finish checking this reply.':message);},
         onInterim:interim=>{if(generation===version.current&&!stop.signal.aborted){setResult(interim);picturesFromAnswer(interim);if(interim.status==='answered'){previewShown=true;submitting.current=false;setBusy(false);}}}
       });
-      if (generation === version.current) { supportSession.current = data.supportSession || null; setResult(data);picturesFromAnswer(data,true); }
+      if (generation === version.current) { supportSession.current = data.supportSession || null; setResult(data);picturesFromAnswer(data,true);return data.answer||data.message||''; }
     } catch (e) { if (!stop.signal.aborted && generation===version.current && !previewShown) setError(e instanceof Error ? e.message : 'Could not check saved records.'); }
     finally { if (generation === version.current) { submitting.current=false; setBusy(false); setReplyProgress(''); currentJob.current=null; } }
   }
@@ -93,12 +94,14 @@ export function AtlasCompanionView({ accessKey, onAccessKeyChange }: { accessKey
     {error && <p role="alert" className="bg-red-50 text-red-800 p-4 rounded-lg">{error}</p>}
     {session && <>
       <p className="text-sm text-slate-500">{session.demoAutoLogin?'Demo patient · Connected':session.mode === 'mongodb' ? 'Access key accepted · Atlas mode' : 'Local test memory'} · {session.patient_id}</p>
+      <ConversationAgentPanel accessKey={accessKey} onQuestion={(question,turnId)=>submitQuestion(question,turnId)}/>
+      <details className="rounded-xl border p-4"><summary className="cursor-pointer">Direct memory lookup</summary>
       <form className="rounded-xl border bg-white p-5 space-y-3" onSubmit={e => void ask(e)}>
         <label className="block font-medium" htmlFor="atlas-question">What would you like to remember?</label>
         <input id="atlas-question" className={field} value={question} onChange={e => setQuestion(e.target.value)} placeholder="Did the physiotherapist visit yesterday?" disabled={busy} />
         <VoiceQuestionInput onTranscript={setQuestion} onQuestion={text=>void submitQuestion(text)} disabled={busy} />
         <button className={button} disabled={busy || !question.trim()}>{busy ? 'Preparing your answer...' : 'Ask about saved records'}</button>
-      </form>
+      </form></details>
       {replyProgress && <div role="status" className="rounded-lg bg-blue-50 p-3"><p>{replyProgress}</p><button type="button" className="mt-2 rounded border px-3 py-2" onClick={()=>{version.current++;cancelReply();submitting.current=false;setReplyProgress('');setBusy(false);setResult(null);}}>Cancel reply</button></div>}
       {pictures.length>0&&<section aria-label="Saved pictures" className="space-y-3"><h2 className="text-xl font-semibold">Saved pictures to help you remember</h2><p className="text-sm text-slate-600">Selected using caregiver labels and saved records.</p><div className="grid md:grid-cols-2 gap-4">{pictures.map(image=><SavedMemoryImage key={image._id} image={image} accessKey={accessKey}/>)}</div></section>}
       {pictureNotice&&<p role="status" className="text-slate-600">{pictureNotice}</p>}

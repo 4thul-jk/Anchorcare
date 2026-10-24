@@ -96,3 +96,11 @@ test('active lost session cannot intercept a new memory question or a past conta
  assert.equal(flow.respond('Can you call my caregiver?',initial.supportSession,'p')!.status,'support');
  assert.equal(flow.respond('I cannot use my phone',initial.supportSession,'p')!.status,'support');
 });
+
+test('day summaries include approved daily conversation journals as well as episodes',()=>{
+ const request=routeQuestion('give me the summary for yesterday','Europe/London',now);assert.deepEqual(request.include,['episodes','daily_logs']);assert.equal(request.day,'2026-10-23');assert.ok(request.time_range);
+});
+
+test('questions about earlier conversations retrieve approved journal reports',()=>{
+ const request=routeQuestion('What did I ask yesterday?','Europe/London',now);assert.deepEqual(request.include,['daily_logs']);assert.equal(request.activity,'other');assert.equal(request.day,'2026-10-23');
+});

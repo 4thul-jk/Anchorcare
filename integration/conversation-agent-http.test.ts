@@ -1,0 +1,19 @@
+import test from 'node:test';import assert from 'node:assert/strict';import express from 'express';
+import {mountEngram} from './engram';import {checkedTurn} from './conversation-agent';
+test('unified turn routes retain auth, draft separation, journal review and media permissions',async t=>{
+ Object.assign(process.env,{STORE:'memory',SUBJECT_IDS:'demo-person-001',HOUSEHOLD_ID:'agent-http',ANCHORCARE_PATIENT_ID:'demo-person-001',ANCHORCARE_ADMIN_KEY:'synthetic-agent-admin',ANCHORCARE_COMPANION_KEY:'synthetic-agent-patient',ADMIN_TOKEN:'synthetic-admin',COMPANION_TOKEN:'synthetic-patient',RUN_WORKER:'false',GEMINI_API_KEY:'',GOOGLE_API_KEY:'',COMPANION_PROVIDER:'gemini',DEMO_PATIENT_AUTOLOGIN:'false'});
+ const app=express();app.use(express.json());
+ const backend=await mountEngram(app,{classifyTurn:async input=>checkedTurn({intent:'question',question_text:input.transcript,items:[],topics:['meal question']},input.transcript)});
+ const server=app.listen(0,'127.0.0.1');await new Promise<void>(r=>server.once('listening',r));t.after(async()=>{await backend.close();await new Promise<void>(r=>server.close(()=>r()));});
+ const base=`http://127.0.0.1:${(server.address()as any).port}/api/engram`;
+ const call=(path:string,body?:any,key='synthetic-agent-patient')=>fetch(base+path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','X-AnchorCare-Key':key},...(body?{body:JSON.stringify(body)}:{})});
+ assert.equal((await call('/agent/turn',{turn_id:'q',transcript:'Did I eat?'},'bad')).status,401);
+ const response=await call('/agent/turn',{turn_id:'q',transcript:'Did I eat?'});assert.equal(response.status,200);const turn=await response.json();assert.equal(turn.intent,'question');
+ const saved=await(await call('/agent/commit',{id:turn._id})).json();assert.equal(saved.state,'saved');assert.equal(saved.outputs.length,0);
+ assert.equal((await call('/admin/agent/daily')).status,403);
+ const daily=await(await call('/admin/agent/daily',undefined,'synthetic-agent-admin')).json();assert.equal(daily.turns.length,1);assert.equal(daily.turns[0].question,'Did I eat?');
+ assert.equal((await call('/admin/agent/consolidate',{})).status,403);
+ const journal=await(await call('/admin/agent/consolidate',{},'synthetic-agent-admin')).json();assert.equal(journal.status,'draft');
+ assert.equal((await call('/admin/agent/media/unknown')).status,403);
+ assert.equal((await backend.store.list('episodes')).length,0);
+});

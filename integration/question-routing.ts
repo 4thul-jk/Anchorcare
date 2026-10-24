@@ -12,7 +12,11 @@ export function routeQuestion(value: unknown, timezone: string, now = new Date()
   let bounds;
   try { bounds = dayBounds(day, timezone); } catch { throw new ApiError(400, 'Invalid date in question'); }
   const request: any = { query, limit: 20 };
-  if (/\b(who is|who's|who am i|what(?:'s| is) my name|my name|daughter|son|wife|husband|prefer|favourite|favorite)\b/.test(q) && !/\b(visit|visiting|visited|coming|came|call|called|dropping by|stopping by)\b/.test(q)) {
+  if(/\b(what|which|how many)\b.*\b(ask|asked|questions|talked|discussed)\b/.test(q)){
+    request.include=['daily_logs'];request.day=day;request.activity='other';
+  } else if(/\b(summary|summari[sz]e|recap|what happened|how was my day)\b/.test(q)){
+    request.include=['episodes','daily_logs'];request.day=day;request.time_range={start:bounds.start.toISOString(),end:bounds.end.toISOString()};
+  } else if (/\b(who is|who's|who am i|what(?:'s| is) my name|my name|daughter|son|wife|husband|prefer|favourite|favorite)\b/.test(q) && !/\b(visit|visiting|visited|coming|came|call|called|dropping by|stopping by)\b/.test(q)) {
     request.include = ['personal_records'];
   } else if (!/\b(did|visited|yesterday|was|were|came|completed|earlier)\b/.test(q) && (/\b(next|upcoming|scheduled|tomorrow|coming|will)\b/.test(q) || /\b(visiting|visitors|visits|going to visit|going to come|dropping by|stopping by)\b/.test(q) || /\bwhen\b.*\bvisit\b/.test(q))) {
     request.include = ['plans', 'personal_records'];

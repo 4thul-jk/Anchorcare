@@ -1,3 +1,4 @@
+import {ConversationAgent,classifyInput} from './conversation-agent';
 import {localDemoAccess} from './demo-access';
 import {RequestLimits,credentialBucket,validateRequestObject} from './http-security';
 import {companionSettings,companionClient} from './companion-provider';
@@ -37,7 +38,7 @@ function matches(value: string, expected?: string) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export async function mountEngram(app: Express) {
+export async function mountEngram(app: Express,options:{classifyTurn?:typeof classifyInput}={}) {
   const cfg = config();
   const companion = companionSettings();
   const patient = process.env.ANCHORCARE_PATIENT_ID || cfg.subjectIds[0];
@@ -50,6 +51,7 @@ export async function mountEngram(app: Express) {
   const team = new TeamContract(service), triggers = new TriggerContract(service);
   const life = new LifeRecords(service), context = new MemoryContext(service);
   const ledger = new AtlasLedger(service);
+  const agent = new ConversationAgent(service,options.classifyTurn);
   const supportSessions = new SupportSessions();
   const capabilityHooks = new CapabilityHooks(service);
   const medication = new MedicationReminders(service);
@@ -58,6 +60,10 @@ export async function mountEngram(app: Express) {
   const push = new MobilePush(service,mobile);
   async function recallAndForward(input:any){const result=await imageMemory.recall(patient,input.question,input.reference_ids);await mobile.sendImages(patient,result.images);return result;}
   const routes: Record<string, { admin?: boolean; call: (input: any) => Promise<any> }> = {
+    'POST /admin/agent/curate-image': {admin:true,call:input=>agent.curateImage(patient,input)},
+    'POST /admin/agent/resolve': {admin:true,call:input=>agent.resolve(patient,input)},
+    'GET /admin/agent/daily': {admin:true,call:input=>agent.daily(patient,input.day)},
+    'POST /admin/agent/consolidate': {admin:true,call:input=>agent.consolidate(patient,input.day)},
     'GET /admin/gemini': {admin:true,call:async()=>({...modelDiagnostics(companion.model),provider:companion.provider,configured:companion.configured})},
     'POST /admin/images': { admin: true, call: input => imageMemory.upload(patient, input) },
     'GET /admin/images': { admin: true, call: () => imageMemory.list(patient) },
@@ -211,12 +217,20 @@ export async function mountEngram(app: Express) {
       const demoAccess=!key&&localDemoAccess(req,patient);
       if (!adminKey && !companionKey) return void res.status(503).json({ error: 'Configure private AnchorCare access keys before using the memory integration' });
       if (!admin && !demoAccess && !matches(key, companionKey)){limits.take('auth-failed:'+req.ip,20);return void res.status(401).json({error:'Valid memory access key required'});}
-      if(req.method==='POST'&&['/ask','/asks','/answer'].includes(req.path))limits.take('inference:'+credentialBucket(key),12);
+      if(req.method==='POST'&&['/ask','/asks','/answer','/agent/turn','/agent/commit'].includes(req.path))limits.take('inference:'+credentialBucket(key),12);
       if(req.method==='POST'&&req.path==='/recall-images')limits.take('pictures:'+credentialBucket(key),40);
       if (req.method === 'GET' && req.path === '/status') {
         return void res.json({ mode: store.mode, patient_id: patient, actor: admin ? 'caregiver' : 'patient', demoAutoLogin:demoAccess, timezone: cfg.timezone, geminiConfigured: Boolean(cfg.geminiKey), companionProvider:companion.provider, companionModel:companion.model, companionConfigured:companion.configured, contextProcessing: cfg.contextProcessing });
       }
       const input = { ...(req.method === 'GET' ? req.query : req.body), patient_id: patient };
+      if(req.method==='POST'&&['/agent/turn','/agent/commit'].includes(req.path)){
+        const stop=new AbortController(),timer=setTimeout(()=>stop.abort(),60000);
+        const disconnected=()=>{if(!res.writableEnded)stop.abort();};res.once('close',disconnected);
+        try{return void res.json(req.path==='/agent/turn'?await agent.turn(patient,input,stop.signal):await agent.commit(patient,input,stop.signal));}
+        finally{clearTimeout(timer);res.off('close',disconnected);}
+      }
+      const captureAsset=req.path.match(/^\/admin\/agent\/media\/([a-zA-Z0-9_-]+)$/);
+      if(req.method==='GET'&&captureAsset){if(!admin)return void res.status(403).json({error:'Caregiver access required'});const asset=await agent.media(patient,captureAsset[1]);res.setHeader('Content-Type',asset.mime);res.setHeader('X-Content-Type-Options','nosniff');return void res.send(asset.bytes);}
       const imageMatch=req.path.match(/^\/images\/([a-zA-Z0-9_-]+)\/content$/);
       if(req.method==='GET'&&imageMatch){
         const image=await imageMemory.content(patient,imageMatch[1],admin);
@@ -230,7 +244,7 @@ export async function mountEngram(app: Express) {
       if(req.method==='POST'&&req.path==='/asks'){
         // Validate shape before allocating background work. Scope is still selected by the server.
         if(typeof input.question!=='string'||!input.question.trim()||input.question.length>1000)return void res.status(400).json({error:'A question of 1-1000 characters is required'});
-        return void res.status(202).json(answerJobs.start(actor,(signal,progress,onContext,onInterim)=>answerQuestion(input,'/ask',admin,signal,progress,onContext,undefined,onInterim)));
+        return void res.status(202).json(answerJobs.start(actor,(signal,progress,onContext,onInterim)=>answerQuestion(input,'/ask',admin,signal,progress,onContext,undefined,onInterim).then(async result=>{await agent.answer(patient,input.agent_turn_id,result);return result;})));
       }
       const match=req.path.match(/^\/asks\/([a-f0-9-]+)(\/cancel)?$/);
       if(match&&req.method==='POST'&&match[2])return void res.json(answerJobs.cancel(match[1],actor));
@@ -281,7 +295,7 @@ export async function mountEngram(app: Express) {
     }
   });
   let mobileRunning:Promise<any>|undefined;
-  const mobileTick=()=>{if(!mobileRunning)mobileRunning=mobile.tick().then(()=>push.tick()).catch(()=>console.error('Mobile dispatch unavailable')).finally(()=>{mobileRunning=undefined;});};
+  const mobileTick=()=>{if(!mobileRunning)mobileRunning=mobile.tick().then(()=>push.tick()).then(()=>agent.nightly()).catch(()=>console.error('Mobile dispatch unavailable')).finally(()=>{mobileRunning=undefined;});};
   const mobileTimer=setInterval(mobileTick,5000);
   let running: Promise<any> | undefined;
   const tick = () => { if (!running) running = service.tick().catch(() => console.error('Engram worker failed')).finally(() => { running = undefined; }); };
