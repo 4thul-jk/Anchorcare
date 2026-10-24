@@ -16,3 +16,13 @@ test('answer concurrency is limited per actor and cancellation releases capacity
 test('browser hardening headers cover API errors and do not advertise Express',async t=>{
  const app=express();installHttpSecurity(app);app.get('/api/check',(_req,res)=>{res.status(401).json({error:'test'});});const server=app.listen(0,'127.0.0.1');await new Promise<void>(resolve=>server.once('listening',resolve));t.after(()=>server.close());const r=await fetch(`http://127.0.0.1:${(server.address() as any).port}/api/check`);assert.equal(r.headers.get('x-frame-options'),'DENY');assert.equal(r.headers.get('x-powered-by'),null);assert.equal(r.headers.get('cache-control'),'no-store');assert.match(r.headers.get('content-security-policy')!,/frame-ancestors 'none'/);
 });
+
+import {localDemoAccess} from './demo-access';
+test('demo access is explicit, loopback only, fixed patient and disabled in production',t=>{
+ const original=process.env.DEMO_PATIENT_AUTOLOGIN,mode=process.env.NODE_ENV;t.after(()=>{if(original===undefined)delete process.env.DEMO_PATIENT_AUTOLOGIN;else process.env.DEMO_PATIENT_AUTOLOGIN=original;if(mode===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=mode;});
+ process.env.DEMO_PATIENT_AUTOLOGIN='true';process.env.NODE_ENV='development';
+ const req={socket:{remoteAddress:'127.0.0.1'},hostname:'127.0.0.1'};assert.equal(localDemoAccess(req,'demo-person-001'),true);
+ assert.equal(localDemoAccess({...req,hostname:'evil.example'},'demo-person-001'),false);
+ assert.equal(localDemoAccess({...req,socket:{remoteAddress:'10.0.0.2'}},'demo-person-001'),false);
+ assert.equal(localDemoAccess(req,'real-patient'),false);process.env.NODE_ENV='production';assert.equal(localDemoAccess(req,'demo-person-001'),false);
+});

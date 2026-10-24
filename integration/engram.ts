@@ -1,3 +1,4 @@
+import {localDemoAccess} from './demo-access';
 import {RequestLimits,credentialBucket,validateRequestObject} from './http-security';
 import {companionSettings,companionClient} from './companion-provider';
 import {modelDiagnostics,providerReason} from './gemini-diagnostics';
@@ -207,12 +208,13 @@ export async function mountEngram(app: Express) {
       }
       const key = req.header('X-AnchorCare-Key') || '';
       const admin = matches(key, adminKey);
+      const demoAccess=!key&&localDemoAccess(req,patient);
       if (!adminKey && !companionKey) return void res.status(503).json({ error: 'Configure private AnchorCare access keys before using the memory integration' });
-      if (!admin && !matches(key, companionKey)){limits.take('auth-failed:'+req.ip,20);return void res.status(401).json({error:'Valid memory access key required'});}
+      if (!admin && !demoAccess && !matches(key, companionKey)){limits.take('auth-failed:'+req.ip,20);return void res.status(401).json({error:'Valid memory access key required'});}
       if(req.method==='POST'&&['/ask','/asks','/answer'].includes(req.path))limits.take('inference:'+credentialBucket(key),12);
       if(req.method==='POST'&&req.path==='/recall-images')limits.take('pictures:'+credentialBucket(key),40);
       if (req.method === 'GET' && req.path === '/status') {
-        return void res.json({ mode: store.mode, patient_id: patient, actor: admin ? 'caregiver' : 'patient', timezone: cfg.timezone, geminiConfigured: Boolean(cfg.geminiKey), companionProvider:companion.provider, companionModel:companion.model, companionConfigured:companion.configured, contextProcessing: cfg.contextProcessing });
+        return void res.json({ mode: store.mode, patient_id: patient, actor: admin ? 'caregiver' : 'patient', demoAutoLogin:demoAccess, timezone: cfg.timezone, geminiConfigured: Boolean(cfg.geminiKey), companionProvider:companion.provider, companionModel:companion.model, companionConfigured:companion.configured, contextProcessing: cfg.contextProcessing });
       }
       const input = { ...(req.method === 'GET' ? req.query : req.body), patient_id: patient };
       const imageMatch=req.path.match(/^\/images\/([a-zA-Z0-9_-]+)\/content$/);

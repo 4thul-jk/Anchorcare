@@ -6,7 +6,7 @@ import { AtlasCompanionView } from '../components/AtlasCompanionView';
 import { memoryApi } from './memoryApi';
 test('primary companion does not render fictional browser assertions before authenticating', () => {
   const html = renderToStaticMarkup(<AtlasCompanionView accessKey="" onAccessKeyChange={() => {}} />);
-  assert.match(html, /Your memory companion/); assert.match(html, /Connect companion/);
+  assert.match(html, /Your memory companion/); assert.match(html, /Opening your demo companion/); assert.doesNotMatch(html, /type="password"/);
   assert.doesNotMatch(html, /4:30|safe at home|Lisinopril|Sam Rivera is with you/);
 });
 test('API failures are surfaced rather than falling back to browser answers', async () => {
