@@ -1,7 +1,7 @@
 # Free demo deployment: no paid resources or database provisioning.
 services:
   - type: web
-    name: muse-anchorcare-demo
+    name: anchorcare-demo
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile
