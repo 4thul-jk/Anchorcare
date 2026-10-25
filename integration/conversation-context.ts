@@ -1,4 +1,12 @@
 import {normaliseRecallQuery} from './query-language';
+import {explicitQuestionDay} from './question-date';
+export function datedMemoryFollowup(original:string,history:any[],timezone:string,now:Date){
+ if(!/^(?:and\s+(?:what|how|when|who|where|did|was|were)\b|what about\b|how about\b|tell me more\b|what else\b|anything else\b)/i.test(original.trim())||explicitQuestionDay(original,timezone,now))return null;
+ const previous=history.at(-1);if(!previous||['web','general_creative','directions','location_needed'].includes(previous.answerSource))return null;
+ const anchor=new Date(previous.recordedAt||now);if(!Number.isFinite(+anchor))return null;
+ const day=explicitQuestionDay(previous.recallQuery||previous.transcript||'',timezone,anchor);if(!day)return null;
+ return /^(?:tell me more|what else|anything else)[.!? ]*$/i.test(original.trim())?'Give me more detail in a summary on '+day:original+' on '+day;
+}
 export function isConversationalRequest(text:string){return /^(?:i (?:want|need|would like) to (?:remember|see|know)|(?:please )?(?:show|tell|remind|help)\b|yes(?: please)?[.! ]*$|(?:no(?: thanks)?|not now|please do)[.! ]*$)/i.test(text.trim());}
 export function resolveRecallQuery(original:string,proposed:unknown,history:any[]){
  const relation=normaliseRecallQuery(original).match(/\b(daughter|son|wife|husband|mother|father|sister|brother)\b/);
@@ -37,3 +45,4 @@ export function locationWording(report:any,now:Date,timezone:string){
  const stale=+now-+new Date(report.reportedAt)>15*60000;
  return `You told me you were at ${report.location} on ${when} (${timezone}). I can't confirm whether you're still there.`+(stale?' Would you like help contacting your emergency contact?':' Is that still where you are? If you need help, would you like to contact your emergency contact?');
 }
+

@@ -1,5 +1,12 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {resolveRecallQuery,currentLocationReport,isConversationalRequest,locationWording} from './conversation-context';
+import {resolveRecallQuery,currentLocationReport,isConversationalRequest,locationWording,datedMemoryFollowup} from './conversation-context';
+test('a breakfast follow-up keeps the previous summary day across midnight, without overriding explicit new dates or web topics',()=>{
+ const history=[{transcript:'Summary of previous day',recordedAt:'2026-10-25T12:00:00Z',answerSource:'saved_memory'}],now=new Date('2026-10-26T12:00:00Z');
+ assert.equal(datedMemoryFollowup('What about breakfast?',history,'Europe/London',now),'What about breakfast? on 2026-10-24');
+ assert.equal(datedMemoryFollowup('tell me more',history,'Europe/London',now),'Give me more detail in a summary on 2026-10-24');
+ assert.equal(datedMemoryFollowup('What about breakfast today?',history,'Europe/London',now),null);
+ assert.equal(datedMemoryFollowup('What about breakfast?',history.map(t=>({...t,answerSource:'web'})),'Europe/London',now),null);
+});
 import {ConversationAgent,checkedTurn} from './conversation-agent';
 import {MemoryStore} from '../engram-retrieval/src/store.js';
 import {EngramService} from '../engram-retrieval/src/service.js';

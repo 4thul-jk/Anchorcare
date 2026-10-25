@@ -1,7 +1,7 @@
 import {DeviceLocation} from './device-location';
 import {generalHelpKind} from './general-help';
 import {careAssessment,fallbackCare,careWording} from './care-assistance';
-import {isConversationalRequest,resolveRecallQuery,currentLocationReport,isLocationRecall,locationWording} from './conversation-context';
+import {isConversationalRequest,resolveRecallQuery,currentLocationReport,isLocationRecall,locationWording,datedMemoryFollowup} from './conversation-context';
 import {explicitQuestionDay} from './question-date';
 import {createHash,randomUUID} from 'node:crypto';
 import {GridFSBucket,ObjectId} from 'mongodb';
@@ -80,6 +80,8 @@ export class ConversationAgent{
    const previous=recent.at(-1);if(currentLocationReport(proposal.transcript)&&previous&&['web','location_needed'].includes(previous.answerSource)&&/\b(weather|forecast|temperature)\b/i.test(previous.publicTopic||previous.transcript)){proposal.intent='mixed';proposal.question=proposal.transcript;}
    if(smallTalk(proposal.transcript)){proposal.intent='information';proposal.question=null;proposal.items=[];proposal.introductions=[];proposal.topics=[];}
    const resolved=resolveRecallQuery(proposal.question||proposal.transcript,proposal.proposedRecallQuery,recent);
+   const datedFollowup=datedMemoryFollowup(proposal.transcript,recent,this.service.cfg.timezone,now);
+   if(datedFollowup){proposal.intent='question';proposal.question=proposal.transcript;resolved.query=datedFollowup;resolved.unresolved=false;}
 
    signal?.throwIfAborted();
    for(const item of proposal.items){
