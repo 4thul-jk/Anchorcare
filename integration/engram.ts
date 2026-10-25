@@ -1,4 +1,5 @@
 import {TelegramAgent} from './team-agents/telegramAgent';
+import {TelegramDelivery} from './team-agents/telegramDelivery';
 import {daySummaryFallback} from './day-summary';
 import {validJudgeInvite,judgeCookie} from './judge-access';
 import {CaregiverAgent} from './team-agents/caregiverAgent';
@@ -74,6 +75,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
   const imageMemory = new ImageMemory(service);
   const mobile = new MobileLink(service);
   const telegramAgent=new TelegramAgent(service);
+  const telegramDelivery=new TelegramDelivery(service,imageMemory,deviceLocation);
   const sessions=new ConversationSessions(service,agent,(patient,input)=>mobile.sos(patient,input));
   const push = new MobilePush(service,mobile);
   async function recallAndForward(input:any){const result=await imageMemory.recall(patient,input.question,input.reference_ids);if(!input.public_demo)await mobile.sendImages(patient,result.images);return result;}
@@ -290,6 +292,11 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
         return void res.json({ mode: store.mode, patient_id: patient, actor: admin ? 'caregiver' : 'patient', demoAutoLogin:demoAccess||judge,publicDemo:publicGuest,judgeDemo:judge, timezone: cfg.timezone, geminiConfigured: Boolean(cfg.geminiKey), companionProvider:companion.provider, companionModel:companion.model, companionConfigured:companion.configured, contextProcessing: cfg.contextProcessing });
       }
       const input = { ...(req.method === 'GET' ? req.query : req.body), patient_id: patient,public_demo:publicGuest };
+      if(req.path==='/telegram/status'&&req.method==='GET')return void res.json(telegramDelivery.status(patient));
+      if(req.method==='POST'&&['/telegram/image','/telegram/location'].includes(req.path)){
+        limits.take('telegram-share:'+credentialBucket(key),8);
+        return void res.json(req.path==='/telegram/image'?await telegramDelivery.image(patient,input):await telegramDelivery.location(patient,input));
+      }
       if(req.method==='POST'&&req.path==='/judge/reminder'){
         if(!judge)return void res.status(403).json({error:'Judge session required'});
         limits.take('judge-reminder:'+req.ip,2);

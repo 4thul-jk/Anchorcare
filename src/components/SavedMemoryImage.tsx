@@ -1,8 +1,10 @@
 import {memoryApi} from '../lib/memoryApi';
-import React,{useEffect,useState} from 'react';
+import React,{useEffect,useState,useRef} from 'react';
 export function SavedMemoryImage({image,accessKey}:{image:any;accessKey:string}){
+ const[telegram,setTelegram]=useState<any>(null),[sharing,setSharing]=useState(false),[shareNotice,setShareNotice]=useState('');const shareRequest=useRef('');
+ useEffect(()=>{const stop=new AbortController();void memoryApi(accessKey,'/telegram/status',undefined,stop.signal).then(setTelegram).catch(()=>setTelegram(null));return()=>stop.abort();},[accessKey]);
  const [url,setUrl]=useState(''),[error,setError]=useState(''),[large,setLarge]=useState(false),[identity,setIdentity]=useState(''),[identifying,setIdentifying]=useState(false);
- useEffect(()=>{const stop=new AbortController();let objectUrl='';setUrl('');setError('');setIdentity('');
+ useEffect(()=>{const stop=new AbortController();let objectUrl='';setUrl('');setError('');setIdentity('');setShareNotice('');shareRequest.current='';
   void fetch('/api/engram/images/'+encodeURIComponent(image._id)+'/content',{headers:{'X-AnchorCare-Key':accessKey},signal:stop.signal,cache:'no-store'}).then(async r=>{
    if(!r.ok)throw Error('This saved picture is unavailable or no longer approved.');const blob=await r.blob();if(stop.signal.aborted)return;
    objectUrl=URL.createObjectURL(blob);setUrl(objectUrl);
@@ -14,8 +16,11 @@ export function SavedMemoryImage({image,accessKey}:{image:any;accessKey:string})
  {url?<img src={url} alt={image.caption} className={large?'w-full max-h-[75vh] object-contain rounded-lg':'w-full h-56 object-contain rounded-lg'} onError={()=>setError('Could not display this saved picture.')}/>:!error&&<p role="status">Loading saved picture...</p>}
  {error&&<p role="status" className="text-amber-800">{error}</p>}
  <figcaption><span className="text-sm text-slate-500">Caregiver label: </span>{image.caption}</figcaption>
+ {url&&!error&&telegram?.imagesEnabled&&<button type="button" disabled={sharing||!!shareNotice} className="rounded border px-3 py-2 text-sm" onClick={()=>{setSharing(true);if(!shareRequest.current)shareRequest.current='image_'+crypto.randomUUID();void memoryApi(accessKey,'/telegram/image',{image_id:image._id,consent:true,request_id:shareRequest.current}).then(d=>setShareNotice(d.message)).catch(e=>setShareNotice(e.message)).finally(()=>setSharing(false));}}>{sharing?'Sharing picture...':'Send this picture to my Telegram'}</button>}
+ {shareNotice&&<p role="status" className="text-sm">{shareNotice}</p>}
  {url&&!error&&<button type="button" className="rounded border px-3 py-2 text-sm" onClick={()=>setLarge(!large)}>{large?'Smaller picture':'Enlarge picture'}</button>}
  {url&&!error&&image.targetType==='person'&&<button type="button" disabled={identifying} className="rounded border px-3 py-2 text-sm ml-2" onClick={()=>{setIdentifying(true);void memoryApi(accessKey,'/identify-image',{image_id:image._id}).then(result=>{setIdentity(result.answer);if(window.speechSynthesis){window.speechSynthesis.cancel();const voice=new SpeechSynthesisUtterance(result.answer);voice.lang='en-GB';voice.rate=.9;window.speechSynthesis.speak(voice);}}).catch(e=>setError(e.message)).finally(()=>setIdentifying(false));}}>Who is this?</button>}
  {identity&&<p role="status">{identity}</p>}
  </figure>;
 }
+
