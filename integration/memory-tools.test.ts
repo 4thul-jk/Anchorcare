@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chooseMemoryTools, validateMemoryTool } from './memory-tools';
+import { chooseMemoryTools, validateMemoryTool,needsSemanticMemoryRoute } from './memory-tools';
+test('ambiguous memory questions use Gemini tool selection without slowing known summaries and routines',()=>{
+ assert.equal(needsSemanticMemoryRoute('Do I enjoy listening to music?'),true);
+ assert.equal(needsSemanticMemoryRoute('What did we discuss about the station?'),true);
+ for(const q of ['Summary of previous day','Did I have breakfast yesterday?','When is my daughter coming?'])assert.equal(needsSemanticMemoryRoute(q),false);
+});
 const now=new Date('2026-10-24T10:00:00Z');
 test('tool arguments are read-only, bounded and calendar dates respect timezone',()=>{
  const r=validateMemoryTool({sections:['plans'],day:'today'},'Who is dropping by today?','Europe/London',now);

@@ -5,6 +5,11 @@ import { text } from '../engram-retrieval/src/validation.js';
 import { routeQuestion } from './question-routing';
 const sections = ['episodes', 'personal_records', 'daily_logs', 'plans'];
 const activities = ['medication', 'exercise', 'meal', 'hydration', 'sleep', 'other'];
+export function needsSemanticMemoryRoute(question:string){
+ // Keep known calendar/routine routes fast and deterministic. Ask Gemini to choose
+ // read tools for the long tail of conversational memory questions.
+ return !/\b(summary|summari[sz]e|recap|what happened|how was my day|medicine|medication|pills?|dose|breakfast|lunch|dinner|water|hydration|exercise|sleep|daughter|son|wife|husband|my name|who am i|favourite|favorite|visiting|visited|coming|tomorrow|yesterday|previous day|today)\b/i.test(question);
+}
 export const memoryTool = { type: 'function', name: 'retrieve_memory',
  description: 'Read approved patient memories: episodes for past events, personal_records for identity/preferences/relationships, daily_logs for routine reports, plans for scheduled intentions. No writes or external actions.',
  parameters: {type:'object',required:['sections','day'],properties:{

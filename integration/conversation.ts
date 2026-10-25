@@ -1,4 +1,7 @@
 import { callGemini } from './gemini-manager';
+export function memoryConversation(history:any[],currentTurnId?:string){
+ return history.filter(t=>t._id!==currentTurnId).slice(-6).map(t=>({user:String(t.transcript||'').slice(0,1000),assistant:typeof t.lastAnswer==='string'?t.lastAnswer.slice(0,1500):null,at:t.recordedAt}));
+}
 // Provider verification is a model check, not proof of clinical or factual correctness.
 export function conversationalText(output: any): string | null {
   if (output?.status !== 'supported' || !Array.isArray(output.claims) || !output.claims.length || output.claims.length > 10) return null;

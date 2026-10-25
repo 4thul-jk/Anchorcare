@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { conversationalText, verifyConversation } from './conversation';
+import { conversationalText, verifyConversation,memoryConversation } from './conversation';
+test('memory dialogue context is bounded and excludes the current turn without treating answers as sources',()=>{
+ const history=Array.from({length:10},(_,i)=>({_id:String(i),transcript:'message '+i,lastAnswer:'reply '+i,recordedAt:'2026-10-25T00:00:00Z'}));
+ const recent=memoryConversation(history,'9');assert.equal(recent.length,6);assert.equal(recent.at(-1)!.user,'message 8');assert.equal(recent[0].user,'message 3');assert.equal('citations' in recent[0],false);
+});
 test('natural text requires bounded supported claims', () => {
   assert.equal(conversationalText({status:'no_support',claims:[{text:'Invented'}]}), null);
   assert.equal(conversationalText({status:'supported',claims:[{text:'Sarah is your daughter.'}]}), 'Sarah is your daughter.');
