@@ -8,7 +8,7 @@ export function generalHelpKind(question:string,hint?:string){
  if(/\b(?:weather|forecast|temperature|near me|nearby|around me|what time is it|what (?:day|date) is (?:it|today))\b/i.test(q))return 'general';
  if(/^(?:please )?(?:search (?:the )?web|look up|search for|what (?:is|are|does|causes)|why (?:is|are|do|does)|how (?:does|do you)|explain|tell me (?:a joke|a story|about)|what(?:'s| is) the weather|weather|latest news)\b/i.test(q)&&!/\b(?:my|our|your|her|his|their)\b/i.test(q))return 'general';
  if(hint==='directions'&&!/\b(?:home|daughter|son|caregiver|caretaker)\b/i.test(q))return 'directions';
- if(hint==='general'&&!/\b(?:my|our|your|her|his|their|who|i|me)\b/i.test(q))return 'general';
+ if(hint==='general'&&!/\b(?:my|our|your|her|his|their|i|me)\b/i.test(q))return 'general';
  return null;
 }
 export function webEvidence(result:any){
