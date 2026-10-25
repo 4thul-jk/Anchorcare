@@ -232,7 +232,10 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
   app.use('/api/engram', async (req: Request, res) => {
     res.setHeader('Cache-Control', 'no-store');
     try {
-      limits.take('ip:'+req.ip,240);
+      // Four reply polls per second use their own bounded budget, so they cannot
+      // exhaust the normal API allowance needed to save turns and acknowledge prompts.
+      if(req.method==='GET'&&/^\/asks\/[a-f0-9-]+$/.test(req.path))limits.take('ip-poll:'+req.ip,360);
+      else limits.take('ip:'+req.ip,240);
       if(req.method==='POST')validateRequestObject(req.body);
       else validateRequestObject(req.query);
       const origin = req.headers.origin;

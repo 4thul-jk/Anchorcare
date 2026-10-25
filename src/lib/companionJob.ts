@@ -11,12 +11,13 @@ export async function runCompanionJob(key:string,payload:any,options:{signal:Abo
  for(;;){
   signal.throwIfAborted();let snapshot:any;
   try{snapshot=await api(key,'/asks/'+started.jobId,undefined,signal);pollFailures=0;}
-  catch(e:any){if(signal.aborted)throw e;if((e.status&&![408,429,500,502,503,504].includes(e.status))||pollFailures>=2)throw e;pollFailures++;options.onProgress('Reconnecting to your reply...');await wait((options.pollMs??1000)*pollFailures,signal);continue;}
+  catch(e:any){if(signal.aborted)throw e;if((e.status&&![408,429,500,502,503,504].includes(e.status))||pollFailures>=2)throw e;pollFailures++;options.onProgress('Reconnecting to your reply...');await wait(Math.max(1000,options.pollMs??250)*pollFailures,signal);continue;}
   if(snapshot.state==='completed'){if(!snapshot.result)throw Error('No checked reply returned. Please ask again.');return snapshot.result;}
   if(snapshot.state==='failed')throw Error(snapshot.error||'Reply unavailable. Please try again.');
   if(snapshot.state==='cancelled')throw new DOMException('Cancelled','AbortError');
   if(snapshot.interim)options.onInterim?.(snapshot.interim);
   options.onProgress(snapshot.phase==='searching_web'?'I am looking that up on the web...':snapshot.phase==='retrying'?'The connection is slow. I am retrying automatically...':snapshot.phase==='generating'?'I found saved information and am preparing your answer...':snapshot.phase==='verifying'?'I am checking that the answer matches your saved information...':'I am checking your saved information...');
-  await wait(options.pollMs??1000,signal);
+  await wait(options.pollMs??250,signal);
  }
 }
+
