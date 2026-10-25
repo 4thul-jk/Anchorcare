@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { conversationalText, verifyConversation,memoryConversation } from './conversation';
+import { conversationalText, verifyConversation,memoryConversation,patientIdentityContext } from './conversation';
+test('second-person verification receives patient identity mapping without unrelated personal facts',()=>{
+ const context={sections:{personal_records:{records:[{originalText:'The patient using this companion is named Alex Mercer.'},{originalText:'Sarah is the daughter.'},{originalText:'An unrelated secret contact.'}]}}};
+ assert.equal(patientIdentityContext(context),'The patient using this companion is named Alex Mercer.');
+ assert.equal(patientIdentityContext({sections:{}}),'');
+});
 test('memory dialogue context is bounded and excludes the current turn without treating answers as sources',()=>{
  const history=Array.from({length:10},(_,i)=>({_id:String(i),transcript:'message '+i,lastAnswer:'reply '+i,recordedAt:'2026-10-25T00:00:00Z'}));
  const recent=memoryConversation(history,'9');assert.equal(recent.length,6);assert.equal(recent.at(-1)!.user,'message 8');assert.equal(recent[0].user,'message 3');assert.equal('citations' in recent[0],false);

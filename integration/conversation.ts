@@ -2,6 +2,9 @@ import { callGemini } from './gemini-manager';
 export function memoryConversation(history:any[],currentTurnId?:string){
  return history.filter(t=>t._id!==currentTurnId).slice(-6).map(t=>({user:String(t.transcript||'').slice(0,1000),assistant:typeof t.lastAnswer==='string'?t.lastAnswer.slice(0,1500):null,at:t.recordedAt}));
 }
+export function patientIdentityContext(context:any){
+ return (context.sections?.personal_records?.records||[]).filter((r:any)=>typeof r.originalText==='string'&&/\bpatient\b[^.]*\b(?:named|name is)\b/i.test(r.originalText)).slice(0,2).map((r:any)=>r.originalText.slice(0,1200)).join('\n');
+}
 // Provider verification is a model check, not proof of clinical or factual correctness.
 export function conversationalText(output: any): string | null {
   if (output?.status !== 'supported' || !Array.isArray(output.claims) || !output.claims.length || output.claims.length > 10) return null;
@@ -17,7 +20,7 @@ export async function verifyConversation(ai: any, model: string, question: strin
       input: JSON.stringify({ question, answer, evidence }),
       generation_config: { thinking_level: 'low', max_output_tokens: 512 },
       response_format: { type: 'text', mime_type: 'application/json', schema: { type: 'object', required: ['supported'], properties: { supported: { type: 'boolean' } } } }
-    }, 6000);
+    }, 12000);
     return JSON.parse(result.output_text || '{}').supported === true;
   } catch { return false; } // Retain exact source evidence if checking is unavailable.
 }
