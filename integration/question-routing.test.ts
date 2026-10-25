@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { routeQuestion } from './question-routing';
+import {daySummaryFallback} from './day-summary';
+test('available daily notes yield a chronological source-backed summary rather than a no-data answer',()=>{
+ const context={sections:{daily_logs:{day:'2026-10-24',records:[{_id:'lunch',occurredAt:'2026-10-24T12:00:00Z',originalText:'Alex ate soup for lunch.'},{_id:'walk',occurredAt:'2026-10-24T09:00:00Z',originalText:'Sam reported a garden walk.'}]},episodes:{records:[]}}};
+ const result=daySummaryFallback(context,'summary of previous day')!;
+ assert.match(result.answer,/2026-10-24/);assert.ok(result.answer.indexOf('garden walk')<result.answer.indexOf('soup'));assert.equal(result.claims.length,2);assert.equal(result.claims[0].citations[0].recordId,'walk');
+ assert.equal(daySummaryFallback(context,'Did I take medicine?'),null);assert.equal(daySummaryFallback({sections:{}},'summary yesterday'),null);
+});
 const now = new Date('2026-10-24T12:00:00Z');
 test('past physiotherapist questions select yesterday episodes, not plans', () => {
   const r = routeQuestion('When did the physiotherapist visit yesterday?', 'Europe/London', now);
@@ -99,6 +106,15 @@ test('active lost session cannot intercept a new memory question or a past conta
 
 test('day summaries include approved daily conversation journals as well as episodes',()=>{
  const request=routeQuestion('give me the summary for yesterday','Europe/London',now);assert.deepEqual(request.include,['episodes','daily_logs']);assert.equal(request.day,'2026-10-23');assert.ok(request.time_range);
+});
+test('previous day and prior day mean yesterday, including the 25-hour London DST day',()=>{
+ const monday=new Date('2026-10-26T12:00:00Z');
+ for(const phrase of ['previous day','prior day','day before today','yesterday']){
+  const result=routeQuestion('Give me a summary of the '+phrase,'Europe/London',monday);
+  assert.equal(result.day,'2026-10-25');assert.equal(+new Date(result.time_range.end)-+new Date(result.time_range.start),25*3600000);
+ }
+ assert.equal(routeQuestion('Summary of the day before yesterday','Europe/London',monday).day,'2026-10-24');
+ assert.throws(()=>routeQuestion('Summary of previous day and today','Europe/London',monday));
 });
 
 test('questions about earlier conversations retrieve approved journal reports',()=>{

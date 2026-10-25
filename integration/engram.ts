@@ -1,4 +1,5 @@
 import {TelegramAgent} from './team-agents/telegramAgent';
+import {daySummaryFallback} from './day-summary';
 import {validJudgeInvite,judgeCookie} from './judge-access';
 import {CaregiverAgent} from './team-agents/caregiverAgent';
 import {DeviceLocation} from './device-location';
@@ -184,14 +185,16 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
         onContext?.(memoryInput);
         signal?.throwIfAborted();
         const retrieved: any = await context.retrieve(memoryInput);
+        const summaryFallback=daySummaryFallback(retrieved,input.question||input.query||'');
         if (selected) (retrieved as any).routing = selected.routing;
         const quickAnswer=quickRequest?visitFallback(retrieved,input.question):null;
         if(quickAnswer)onInterim?.({status:'answered',answer:quickAnswer.answer,claims:quickAnswer.claims,context:retrieved,conversational:false,verification:'approved_visit_fields_preview'});
+        else if(summaryFallback)onInterim?.(summaryFallback);
         else onInterim?.({status:'evidence_only',context:retrieved,message:'Here are the saved reports. I am still checking the wording of the reply.'});
         if(quickRequest&&retrieved.sections.plans?.complete&&retrieved.sections.plans.records.length===0)return {status:'no_support',answer:missingMemoryReply(input.question,'missing'),context:retrieved};
         if (Object.values(retrieved.sections).every((section: any) => section.records.length === 0)) return ({ status: 'no_support', answer:missingMemoryReply(input.question,'missing'), context: retrieved });
         if (!companion.configured && quickAnswer) return ({status:'answered',answer:quickAnswer.answer,claims:quickAnswer.claims,context:retrieved,conversational:false,verification:'approved_visit_fields_fallback'});
-        if (!companion.configured) return ({ status: 'evidence_only', context: retrieved, message: 'The conversation provider is not configured. These are saved records, not a generated answer.' });
+        if (!companion.configured) return summaryFallback||({ status: 'evidence_only', context: retrieved, message: 'The conversation provider is not configured. These are saved records, not a generated answer.' });
         // Use a context-aware schema and typed citations, not client-supplied evidence.
         let answerPhase='generating';
         const ai = await companionClient({signal,onProgress:phase=>onProgress?.(phase==='checking'?answerPhase:phase)});
@@ -208,6 +211,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
           const visit = visitFallback(latest, input.question || input.query);
           if (visit) return ({ status: 'answered', answer: visit.answer, claims: visit.claims, context: latest, conversational: false, verification: 'approved_visit_fields_fallback' });
           const reason=error.providerReason||providerReason(error).reason;
+          const summary=daySummaryFallback(latest,input.question||input.query||'');if(summary)return summary;
           return ({status:'evidence_only',context:latest,responseSource:'saved_records_fallback',modelStatus:reason,message:reason==='timeout'?'The conversation service did not reply in time. You can review the saved records below.':'The conversation service is unavailable right now. You can review the saved records below; your caregiver can check the connection.'});
         }
         let output: any;
@@ -218,6 +222,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
           const latest = await context.retrieve(memoryInput);
           const visit = visitFallback(latest, input.question || input.query);
           if (visit) return ({ status: 'answered', answer: visit.answer, claims: visit.claims, context: latest, conversational: false, verification: 'approved_visit_fields_fallback' });
+          const summary=daySummaryFallback(latest,input.question||input.query||'');if(summary)return summary;
           return ({ status: 'no_support', answer:missingMemoryReply(input.question || input.query), context: latest });
         }
         const candidate = conversationalText(output);
@@ -225,7 +230,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
         const natural = candidate ? await verifyConversation(ai, companion.model, input.question || input.query, candidate, `${checked.answer || ''}\nTime zone for displaying ISO timestamps: ${fresh.timezone}; current time: ${fresh.retrievedAt}`) : false;
         const latest = await context.retrieve(memoryInput);
         const stillChecked = checkedSourceQuotes(latest, output);
-        if (!stillChecked.allowed) return ({ status: 'no_support', answer:missingMemoryReply(input.question || input.query), context: latest });
+        if (!stillChecked.allowed) return daySummaryFallback(latest,input.question||input.query||'')||({ status: 'no_support', answer:missingMemoryReply(input.question || input.query), context: latest });
         return ({ status: 'answered', answer: natural ? candidate : stillChecked.answer, claims: stillChecked.claims, context: latest,
           verification: natural ? 'source_quotes_and_model_entailment_check' : stillChecked.verification, conversational: natural });
   }

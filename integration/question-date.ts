@@ -5,8 +5,11 @@ export function explicitQuestionDay(question:string,timezone:string,now:Date):st
  const q=question.toLowerCase(),today=localDayKey(now,timezone),days=new Set<string>();
  if(/\b(last week|last month|next week|next month|last year)\b/.test(q))throw new ApiError(400,'Please ask about one day: today, yesterday, tomorrow or a YYYY-MM-DD date.');
  for(const date of q.match(/\b\d{4}-\d{2}-\d{2}\b/g)||[])days.add(date);
- if(/\b(today|tonight)\b/.test(q))days.add(today);
- if(/\b(yesterday|last night)\b/.test(q))days.add(shiftDay(today,-1));
+ if(/\b(today|tonight)\b/.test(q.replace(/\bday before today\b/g,'')))days.add(today);
+ const twoDaysAgo=/\b(?:day before yesterday|two days ago|2 days ago)\b/.test(q);
+ if(twoDaysAgo)days.add(shiftDay(today,-2));
+ const remaining=q.replace(/\b(?:day before yesterday|two days ago|2 days ago)\b/g,'');
+ if(/\b(yesterday|last night|previous day|previous night|prior day|day before today)\b/.test(remaining))days.add(shiftDay(today,-1));
  if(/\btomorrow\b/.test(q))days.add(shiftDay(today,1));
  if(days.size>1)throw new ApiError(400,'Please ask about one day at a time so I do not mix past events with upcoming plans.');
  const day=[...days][0];

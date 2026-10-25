@@ -1,9 +1,9 @@
 import {MUSE_PERSONALITY} from './muse-personality';
 import {companionClient,companionSettings} from './companion-provider';
 export function generalHelpKind(question:string,hint?:string){
- const q=question.trim();
+ const q=question.trim().replace(/^(?:hey\s+muse[, ]+|muse[, ]+|please\s+)/i,'').replace(/^(?:can|could|would) you (?:please )?(?:tell me|explain to me|explain|find out)\s+/i,'').replace(/^i (?:want|would like|need) to know\s+/i,'');
  // Personal recall, health and assistance remain on private scoped paths, never web search.
- if(/\b(daughter|son|wife|husband|caregiver|caretaker|guardian|medicine|medication|pills?|dose|symptoms?|diagnosis|chest pain|can't breathe|lost|my name|who am i|my address|my home|my memories|my records|address|phone number|email|birthday|visited|forgot)\b/i.test(q))return null;
+ if(/\b(daughter|son|wife|husband|mother|father|sister|brother|caregiver|caretaker|guardian|medicine|medication|pills?|dose|symptoms?|diagnosis|chest pain|can't breathe|lost|my name|who am i|my address|my home|my memories|my records|address|phone number|email|birthday|visited|forgot|summary|summari[sz]e|recap|previous day|prior day|yesterday|last night)\b/i.test(q))return null;
  if(/\b(?:directions?|navigate|how (?:do i|can i|to) get to|route (?:to|from))\b/i.test(q))return 'directions';
  if(/\b(?:weather|forecast|temperature|near me|nearby|around me|what time is it|what (?:day|date) is (?:it|today))\b/i.test(q))return 'general';
  if(/^(?:please )?(?:search (?:the )?web|look up|search for|what (?:is|are|does|causes)|why (?:is|are|do|does)|how (?:does|do you)|explain|tell me (?:a joke|a story|about)|what(?:'s| is) the weather|weather|latest news)\b/i.test(q)&&!/\b(?:my|our|your|her|his|their)\b/i.test(q))return 'general';

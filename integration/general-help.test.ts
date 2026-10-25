@@ -4,6 +4,10 @@ test('general help excludes personal and care queries, even with a model routing
  for(const q of ['Who is my daughter?','What is my name?','What is my medicine?','What is Alex address?','I am lost'])assert.equal(generalHelpKind(q,'general'),null);
  assert.equal(generalHelpKind('What is photosynthesis?'),'general');assert.equal(generalHelpKind('Tell me a joke'),'general');assert.equal(generalHelpKind('Directions from Guildford station to Guildford castle'),'directions');
 });
+test('spoken public-question wrappers route to general help, while personal day summaries never become web questions',()=>{
+ for(const q of ['Can you tell me what is photosynthesis?','I want to know what is the capital of France','Could you explain why is the sky blue?'])assert.equal(generalHelpKind(q),'general',q);
+ for(const q of ['Give me the summary of previous day','Can you tell me my daughter name?','I need to know what I did yesterday'])assert.equal(generalHelpKind(q,'general'),null,q);
+});
 test('web call contains only current question and sources come from provider annotations',async()=>{
  let sent:any;const helper=new GeneralHelp(async()=>({interactions:{create:async(params:any)=>{sent=params;return {output_text:'A public answer.',steps:[{content:[{type:'text',annotations:[{type:'url_citation',url:'https://example.org/fact',title:'Evidence'}]}]}]};}}})as any);
  const answer=await helper.answer('What is photosynthesis?','general');assert.equal(sent.input,'What is photosynthesis?');assert.deepEqual(sent.tools,[{type:'google_search'}]);assert.equal(sent.store,false);assert.equal('previous_interaction_id'in sent,false);assert.equal(answer.responseSource,'web');assert.equal(answer.sources.length,1);
