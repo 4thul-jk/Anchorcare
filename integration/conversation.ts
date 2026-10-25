@@ -5,6 +5,14 @@ export function memoryConversation(history:any[],currentTurnId?:string){
 export function patientIdentityContext(context:any){
  return (context.sections?.personal_records?.records||[]).filter((r:any)=>typeof r.originalText==='string'&&/\bpatient\b[^.]*\b(?:named|name is)\b/i.test(r.originalText)).slice(0,2).map((r:any)=>r.originalText.slice(0,1200)).join('\n');
 }
+export function verificationSources(context:any,claims:any[]){
+ const sources:any[]=[];
+ for(const claim of claims||[])for(const citation of claim.citations||[]){
+  const record=context.sections?.[citation.section]?.records?.find((r:any)=>(r.id??r._id)===citation.recordId);if(!record)continue;
+  sources.push({section:citation.section,recordId:citation.recordId,quote:citation.quote,sourceType:record.sourceType||null,eventTime:citation.section==='daily_logs'?record.occurredAt:citation.section==='episodes'?record.start:citation.section==='plans'?record.eventStart:null,planned:citation.section==='plans'});
+ }
+ return sources.slice(0,30);
+}
 // Provider verification is a model check, not proof of clinical or factual correctness.
 export function conversationalText(output: any): string | null {
   if (output?.status !== 'supported' || !Array.isArray(output.claims) || !output.claims.length || output.claims.length > 10) return null;

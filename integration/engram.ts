@@ -40,7 +40,7 @@ import { MemoryContext, buildContextEvidenceInput, validateContextCitations } fr
 import { AtlasLedger } from './ledger';
 import { checkedSourceQuotes } from './source-quotes';
 import { routeQuestion } from './question-routing';
-import { conversationalText, verifyConversation,memoryConversation,patientIdentityContext } from './conversation';
+import { conversationalText, verifyConversation,memoryConversation,patientIdentityContext,verificationSources } from './conversation';
 
 function matches(value: string, expected?: string) {
   if (!expected) return false;
@@ -234,7 +234,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
         }
         const candidate = conversationalText(output);
         answerPhase='verifying';onProgress?.('verifying');
-        const natural = candidate ? await verifyConversation(ai, companion.model, input.question || input.query, candidate, `${checked.answer || ''}\nIdentity context only for resolving you/your, not an extra answer: ${patientIdentityContext(fresh)}\nTime zone for displaying ISO timestamps: ${fresh.timezone}; current time: ${fresh.retrievedAt}`) : false;
+        const natural = candidate ? await verifyConversation(ai, companion.model, input.question || input.query, candidate, `${checked.answer || ''}\nCited source metadata (event times describe reported events, not independent confirmation): ${JSON.stringify(verificationSources(fresh,output.claims))}\nIdentity context only for resolving you/your, not an extra answer: ${patientIdentityContext(fresh)}\nTime zone for displaying ISO timestamps: ${fresh.timezone}; current time: ${fresh.retrievedAt}`) : false;
         const latest = await context.retrieve(memoryInput);
         const stillChecked = checkedSourceQuotes(latest, output);
         if (!stillChecked.allowed) return daySummaryFallback(latest,input.question||input.query||'')||({ status: 'no_support', answer:missingMemoryReply(input.question || input.query), context: latest });

@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { conversationalText, verifyConversation,memoryConversation,patientIdentityContext } from './conversation';
+import { conversationalText, verifyConversation,memoryConversation,patientIdentityContext,verificationSources } from './conversation';
+test('verification includes the cited event time but never treats a personal-record creation date as an event',()=>{
+ const context={sections:{daily_logs:{records:[{_id:'meal',occurredAt:'2026-10-24T08:00:00Z',sourceType:'caregiver_report'}]},personal_records:{records:[{_id:'name',createdAt:'2026-10-25T00:00:00Z'}]}}};
+ const sources=verificationSources(context,[{citations:[{section:'daily_logs',recordId:'meal',quote:'Breakfast'},{section:'personal_records',recordId:'name',quote:'Name'}]}]);
+ assert.equal(sources[0].eventTime,'2026-10-24T08:00:00Z');assert.equal(sources[1].eventTime,null);
+});
 test('second-person verification receives patient identity mapping without unrelated personal facts',()=>{
  const context={sections:{personal_records:{records:[{originalText:'The patient using this companion is named Alex Mercer.'},{originalText:'Sarah is the daughter.'},{originalText:'An unrelated secret contact.'}]}}};
  assert.equal(patientIdentityContext(context),'The patient using this companion is named Alex Mercer.');
