@@ -6,7 +6,7 @@ test('judge invitations are signed, expiring, bounded and extracted from private
  assert.equal(validJudgeInvite(token,'different-secret',now),false);
  assert.equal(validJudgeInvite(token,'test-secret',now+60001),false);
  assert.equal(validJudgeInvite(token+'x','test-secret',now),false);
- assert.equal(validJudgeInvite(judgeInvite('test-secret',now+26*3600000),'test-secret',now),false);
+ assert.equal(validJudgeInvite(judgeInvite('test-secret',now+9*24*3600000),'test-secret',now),false);
  assert.equal(judgeCookie('unrelated=x; muse_judge='+token),token);
  assert.equal(judgeCookie(undefined),'');
 });
@@ -47,3 +47,4 @@ test('key-free public access fails closed on private databases and blocks sensit
  for(const path of ['/admin/storage','/location','/agent/capture','/agent/snapshot','/mobile/sos','/admin/people'])assert.equal(publicDemoRoute('POST',path),false);
  assert.equal(publicDemoRoute('GET','/status'),true);assert.equal(publicDemoRoute('POST','/agent/turn'),true);
 });
+

@@ -250,7 +250,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
       if(req.method==='POST'&&req.path==='/judge/enter'){
         limits.take('judge-enter:'+req.ip,10);
         if(!publicMode||!validJudgeInvite(String(req.body.invite||''),companionKey||''))return void res.status(403).json({error:'Judge invitation is invalid or expired'});
-        res.setHeader('Set-Cookie',`muse_judge=${req.body.invite}; HttpOnly; Secure; SameSite=Strict; Path=/api/engram; Max-Age=86400`);
+        res.setHeader('Set-Cookie',`muse_judge=${req.body.invite}; HttpOnly; Secure; SameSite=Strict; Path=/api/engram; Max-Age=604800`);
         return void res.json({accepted:true});
       }
       const judge=publicMode&&validJudgeInvite(judgeCookie(req.headers.cookie),companionKey||'');
@@ -372,3 +372,4 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
   if (cfg.runWorker) tick();
   return { service, store, close: async () => { answerJobs.close(); telegramAgent.close();clearInterval(telegramTimer); clearInterval(mobileTimer); if(mobileRunning)await mobileRunning; if (timer) clearInterval(timer); if (running) await running; await store.close(); } };
 }
+

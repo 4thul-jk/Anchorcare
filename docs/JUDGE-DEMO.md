@@ -2,7 +2,7 @@
 
 The ordinary public URL remains a restricted showcase. A signed invitation opens the full companion controls on the separate `muse_public_demo` database / `muse-public-demo` household only. It does not grant administrator access or expose the original private patient database. Judges share fictional Alex and may see fictional facts other judges add; do not submit actual personal information.
 
-Run `npx tsx integration/create-judge-link.ts` to create `tmp/JUDGE-DEMO-LINK.txt`. Share that file's first line privately with judges. Invitations expire after 24 hours; rotation of the companion key revokes all invitations. The invitation is passed in the URL fragment (not server access logs), exchanged for an HttpOnly Secure SameSite cookie, and removed from the address bar. The signing key is never sent to the browser. Cookies cannot outlive the signed expiry. Opening in another browser requires the invitation again. Keep the link out of Git and public submissions; use the ordinary showcase URL for public listings.
+Run `npx tsx integration/create-judge-link.ts` to create `tmp/JUDGE-DEMO-LINK.txt`. Share that file's first line privately with judges. Invitations expire after seven days; rotation of the companion key revokes all invitations. The invitation is passed in the URL fragment (not server access logs), exchanged for an HttpOnly Secure SameSite cookie, and removed from the address bar. The signing key is never sent to the browser. Cookies cannot outlive the signed expiry. Opening in another browser requires the invitation again. Keep the link out of Git and public submissions; use the ordinary showcase URL for public listings.
 
 The script also creates `tmp/JUDGE-DEMO.html`, a shareable launch page with a clickable invitation and a short testing sequence.
 
@@ -26,4 +26,5 @@ Added signed invitations and cookie validation in `integration/judge-access.ts`;
 ## Live verification
 
 Deployed commit e05284e to Render service muse-anchorcare-demo on 25 October 2026; final deployment dep-dbekd08m7kps73e6cem0. Confirmed authenticated judge status, Gemini gemini-4-argon, admin API denial, one daughter illustration, a new fictional sunflower preference saved as an available personal report, and the answer “You told me that your favourite flower is a sunflower.” Scheduled a photo-album reminder, received it through the real prompt endpoint and acknowledged it. Browser verification showed the judge controls without a key field, Sarah's picture and “Sarah Mercer is your daughter.” Automated security/conversation HTTP tests: 8 passed. Type checking and production build passed. Physical microphone, camera and device GPS remain permission-dependent and were not exercised with real recordings or location in this verification.
+
 
