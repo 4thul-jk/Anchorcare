@@ -1,0 +1,108 @@
+.arcade-app{--ink:#e9f1ef;--muted:#a7b9bb;--green:#71e3b0;--line:#354d57;background:radial-gradient(ellipse at top,#203f4c 0,#101e2b 60%);color:var(--ink)}
+.arcade-app .sim-heading h1{font-family:ui-monospace,Consolas,monospace;font-weight:900;letter-spacing:-3px;font-size:clamp(36px,5vw,70px);line-height:.95;text-shadow:4px 4px #0a121d}.arcade-app .sim-heading h1 em{font-style:normal;color:#a4ef8e}.arcade-app .sim-kicker{color:#8dd5c0}.arcade-app .sim-person-card,.arcade-app .sim-mode-switch,.arcade-app .sim-sandbox,.arcade-app .sim-guide,.arcade-app .sim-stage,.arcade-app .sim-companion,.arcade-app .sim-evidence{background:#182d38;border-color:#3b5560;box-shadow:0 5px 0 #0a1822}.arcade-app .sim-initials{background:#356256;color:#e7ffe8}.arcade-app .sim-brand-mark{background:#9ee9ae;color:#13362c}.arcade-app button{background:#213e49;color:#edf5e9;border-color:#456773;border-radius:6px;box-shadow:0 3px 0 #0c1b25}.arcade-app button:hover:not(:disabled){background:#315a62}.arcade-app button.sim-primary,.arcade-app .sim-mode-switch button.active,.arcade-app .sim-destinations button.selected{background:#b9ef8b;color:#17382c;border-color:#c7f4a2}.arcade-app .sim-mode-note,.arcade-app .sim-sandbox p,.arcade-app .sim-guide small{color:#b2c6c6}.arcade-app .sim-guide strong{color:#a8e6ba}.arcade-app .sim-guide span{background:#24444e;color:#d9efdb}.arcade-app .sim-destinations,.arcade-app .sim-disclosure{background:#142a34}.arcade-app .sim-world{border-block:5px solid #0c202c;filter:saturate(1.15)}.arcade-app .sim-message{background:#24433e;color:#eef4e4;border:1px solid #395f51}.arcade-app .sim-message.sim-user{background:#2b3c54;border-color:#455b78}.arcade-app input{background:#0f2530;color:#eff7f4;border-color:#486673}.arcade-app .sim-photo{background:#243b46;color:#eef4e4}.arcade-app .sim-source,.arcade-app .sim-message-label{color:#a5c6b4}.arcade-app .sim-log{background:#1d3540;border-color:#38545d}.arcade-app .sim-log p,.arcade-app .sim-log small{color:#b9cccb}.arcade-app .sim-action-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.arcade-app .sim-action-grid button{min-height:60px;font-size:13px;justify-content:flex-start}.arcade-app .sim-action-grid button span{margin:0;color:#b9ef8b}.arcade-app .sim-question{background:#142b35}.arcade-app .sim-stage-heading{font-family:ui-monospace,monospace;color:#b5f1b9}.arcade-app .sim-layout{grid-template-columns:minmax(0,1.65fr) minmax(320px,1fr)}.arcade-app .sim-companion{position:sticky;top:12px;max-height:90vh}.arcade-app .sim-chat{min-height:220px}.arcade-missions{display:flex;gap:10px;flex-wrap:wrap;border:1px solid #49646e;background:#0e2530;padding:16px;border-radius:10px;margin-bottom:20px}.arcade-missions>div{display:flex;gap:20px;align-items:center;flex-wrap:wrap;width:100%;font-family:ui-monospace,monospace}.arcade-missions b{color:#ffdb7b;font-size:24px}.arcade-missions small{font:11px system-ui;color:#a4b6b9}.arcade-missions>span{padding:10px 12px;border:1px solid #49646e;border-radius:5px;color:#a8babb;font-size:12px}.arcade-missions>span.achieved{color:#c9ffb6;border-color:#80b784;background:#254b3c}.arcade-trace{padding:14px 18px;background:#102630;border-bottom:1px solid #3b555d;font-size:11px}.arcade-trace strong{color:#9aebcb;letter-spacing:1px}.arcade-trace p{margin:8px 0}.arcade-trace small{display:block;color:#a8bbc1;margin-top:4px}.arcade-app .pov-story,.arcade-app .pov-whisper,.arcade-app .pov-plans{background:#19333d;color:#e9f1ef}.arcade-app .pov-story p,.arcade-app .pov-whisper p{color:#c4d6d2}.arcade-app .sim-error{color:#ffd1bc;background:#542f2f}
+@media(max-width:900px){.arcade-app .sim-layout{grid-template-columns:1fr}.arcade-app .sim-companion{position:static;max-height:800px}.arcade-app .sim-action-grid{grid-template-columns:1fr 1fr}}@media(max-width:480px){.arcade-app .sim-action-grid{grid-template-columns:1fr}.arcade-missions>span{flex:1 1 40%}}
+
+.arcade-app .sim-destinations button{color:#d8ebdd}.arcade-app .sim-sandbox label{color:#d8f3df}.arcade-app .sim-mode-switch button{color:#edf5e9}.arcade-app .sim-mode-switch button.active{color:#17382c}.arcade-app .sim-day-filter button{color:#e2f4eb}
+.arcade-bubbles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:16px;background:#102731;min-height:120px}.arcade-bubbles>div{position:relative;background:#29483e;border:2px solid #70ad8c;border-radius:12px 12px 12px 2px;padding:12px;box-shadow:3px 4px #091a21}.arcade-bubbles>div.alex-bubble{background:#293e60;border-color:#7e9dd5;border-radius:12px 12px 2px 12px}.arcade-bubbles strong{color:#f8df90;font:700 12px ui-monospace,monospace;text-transform:uppercase;letter-spacing:1px}.arcade-bubbles p{color:#f1f6e9;font-size:13px;line-height:1.5;margin:8px 0}.arcade-bubbles small{color:#b0c5c2;font-size:9px}.arcade-app .sim-world{image-rendering:auto}.arcade-missions b{background:#253e2b;border:1px solid #7bbd7d;padding:8px 14px;border-radius:6px}@media(max-width:600px){.arcade-bubbles{grid-template-columns:1fr}.arcade-bubbles>div:not(:last-child){display:none}}
+
+/* In-world dialogue and walkthrough animation; no effect on stored records. */
+.arcade-app .sim-avatar{transition:transform .9s linear}
+.scene-walking .sim-avatar>rect:first-of-type,.scene-walking .sim-avatar>circle{animation:scene-step .22s ease-in-out infinite alternate}
+.scene-jhonny circle{animation:scene-glow 2s ease-in-out infinite alternate}
+.scene-speech{position:relative;box-sizing:border-box;margin:0 8px 16px;padding:12px 16px;background:#fffdf1;color:#193d36;border:3px solid #52796a;border-radius:16px;box-shadow:0 5px 0 #163d3625;font:15px/1.35 system-ui;animation:scene-pop .25s ease-out}
+.scene-speech:after{content:'';position:absolute;bottom:-15px;left:48%;border-width:14px 11px 0;border-style:solid;border-color:#52796a transparent transparent}
+.scene-speech strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#346d59;margin-bottom:4px}
+.scene-speech p{margin:0;max-height:76px;overflow:auto}
+.scene-alex{background:#edf5ff;border-color:#52719c}
+.scene-playing{scroll-margin-top:12px}.scene-playing .sim-interactions,.scene-playing .sim-destinations{display:none}
+.scene-pause{display:inline-flex;align-items:center;gap:4px;margin-right:10px;padding:5px 8px!important}
+@keyframes scene-step{to{translate:0 -3px}}
+@keyframes scene-glow{to{stroke:#fff7b6;filter:drop-shadow(0 0 5px #7fffc9)}}
+@keyframes scene-pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.arcade-app .sim-avatar{transition:none}.scene-speech,.scene-jhonny circle{animation:none}}
+
+.scene-navigation{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;background:#102631}.scene-navigation strong{font-size:13px;color:#bbebcf}
+.scene-choice-panel{padding:20px}.scene-choice-panel h3{margin:10px 0;color:#edf8e9}.scene-choice-panel>p{color:#b8cecc;font-size:13px}
+.scene-targets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.scene-targets button{display:flex;flex-direction:column;align-items:center;padding:18px 8px;gap:9px;min-height:90px}.scene-targets span{font-size:25px;color:#b9ef8b}.scene-targets strong{font-size:12px}
+.scene-choices{display:grid;gap:10px}.scene-choices button{text-align:left;padding:14px;display:flex;flex-direction:column;gap:7px}.scene-choices small{color:#a8c5c4;font-size:11px}.scene-back{font-size:12px;padding:8px}
+.arcade-app .scene-hotspot{font:7px system-ui;width:94px;min-height:22px;padding:5px 2px;background:#173d40ed;border:1px solid #a4e4bc;color:#edffe7;box-shadow:0 2px 0 #071c23;border-radius:5px;cursor:pointer}
+.scene-playing .scene-choice-panel,.scene-playing .scene-navigation{display:none}
+@media(max-width:600px){.scene-targets{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Judge layout: play surface first; optional guidance and evidence stay discoverable. */
+.arcade-app .sim-heading{padding:18px 0 12px}.arcade-app .sim-heading h1{font-size:clamp(28px,4vw,46px);line-height:1}.arcade-app .sim-heading h1 br{display:none}.arcade-app .sim-heading h1 em:before{content:' '}.arcade-app .sim-heading>div>p:last-child{margin:9px 0;font-size:13px}.arcade-app .sim-person-card{display:none}
+.judge-help,.judge-time,.judge-evidence{border:1px solid #3b5560;border-radius:10px;background:#152c37;margin:12px 0;color:#ddecdf}.judge-help summary,.judge-time summary,.judge-evidence summary{padding:13px 16px;cursor:pointer;font-weight:600;font-size:13px}.judge-guide-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;padding:0 20px 18px}.judge-guide-grid h3{font-size:15px;color:#b9ef8b}.judge-guide-grid p,.judge-guide-grid li{font-size:13px;line-height:1.65;color:#ccdddc}.judge-guide-grid ol,.judge-guide-grid ul{padding-left:20px}.judge-time .sim-guide{display:none}.judge-time .sim-sandbox{border:0;box-shadow:none;margin:0}.judge-evidence .sim-evidence{margin:0;padding:20px;border:0;box-shadow:none}
+.judge-fast-controls{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:8px 0 12px}.judge-fast-controls>span{margin-right:auto;font-size:12px;color:#bad1cd}.judge-fast-controls button{font-size:12px;padding:8px 12px}
+.arcade-missions{padding:12px;margin-bottom:10px;gap:6px}.arcade-missions>div{gap:12px}.arcade-missions b{font-size:20px}.arcade-missions small{flex:1;min-width:230px}.arcade-missions>span{padding:5px 8px;font-size:10px}.arcade-app .sim-mode-note{margin:6px 0;font-size:12px}.arcade-app .sim-toolbar{margin-bottom:12px}.arcade-app .sim-stage{align-self:start}.arcade-app .scene-choice-panel{padding:14px}.arcade-app .sim-disclosure{font-size:11px}.arcade-app .sim-layout{align-items:start}
+@media(min-width:901px){.arcade-app .sim-world{max-height:440px;width:100%;background:#dce7cf}.arcade-app .sim-companion{max-height:780px}.arcade-app .sim-chat{max-height:370px}.arcade-app .arcade-bubbles{max-height:180px;overflow:auto}}
+@media(max-width:900px){.judge-guide-grid{grid-template-columns:1fr;gap:4px}.arcade-app .sim-heading h1{font-size:30px}.arcade-app .sim-heading{padding:12px 0}.arcade-app .arcade-missions>span{flex:initial}.arcade-app .sim-companion{max-height:none}.arcade-app .sim-chat{max-height:360px}.judge-fast-controls>span{width:100%}}
+
+.judge-jump{color:#c9f7ad;font-size:12px;padding:8px;text-decoration:underline}#game-scene{scroll-margin-top:12px}
+
+.arcade-app .scene-latest-reply{display:block;max-height:150px;overflow:auto}.scene-latest-reply>div:not(:last-child){display:none}
+
+.arcade-app [hidden]{display:none!important}
+.scene-picker{padding:24px;background:#172f3b;border:1px solid #41606a;border-radius:14px;margin:18px 0}.scene-picker h2{font-size:26px;margin:8px 0}.scene-picker>p{color:#b9cecd;line-height:1.5}.scene-picker>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:22px}.scene-picker button{text-align:left;display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:22px;min-height:210px}.scene-picker button>span{font-size:32px;color:#c5f1a4}.scene-picker strong{font-size:17px}.scene-picker small{font-size:13px;color:#b8cecc;line-height:1.5}.scene-picker b{margin-top:auto;color:#bcf19e;font-size:12px}.arcade-app .sim-layout:has(>.sim-companion[hidden]){grid-template-columns:minmax(0,1fr)}
+@media(max-width:800px){.scene-picker>div{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:480px){.scene-picker{padding:16px}.scene-picker>div{grid-template-columns:1fr}.scene-picker button{min-height:165px}}
+
+.arcade-app .movie-pov .pov-scene{max-height:410px;width:100%;background:#d6d3bc}.movie-dialogue{padding:24px 28px;background:#102732;border-top:4px solid #9fe0b6}.movie-dialogue>small{color:#a6e7bf;letter-spacing:2px;font-weight:bold}.movie-dialogue h2{font-size:23px;color:#eef5e9;margin:8px 0}.movie-dialogue p{font-size:18px;line-height:1.6;color:#e0eee5;margin:12px 0}.movie-selected{font-size:12px;color:#a6c0bc}.movie-choices{padding:16px 28px!important;display:flex;gap:12px;flex-wrap:wrap}.movie-choices button{flex:1 1 220px;min-height:65px;margin:0!important;justify-content:space-between}.movie-note{font-size:11px;color:#b8cfca;padding:0 28px 20px;line-height:1.5}
+
+.movie-family{display:flex;align-items:center;gap:18px;padding:16px 28px;margin:0;background:#24433e}.movie-family img{width:110px;border-radius:12px}.movie-family figcaption{color:#e3f2e8;font-size:16px}.movie-family small{font-size:11px;color:#b5d0c4}.movie-note summary{cursor:pointer;padding:10px 0}.movie-note p{line-height:1.7}
+
+.movie-reminder{margin:16px;padding:20px;border:2px solid #e8c47c;border-radius:12px;background:#354632;color:#fff8df;animation:scene-pop .3s ease-out}.movie-reminder>strong{color:#ffe6a4;font-size:16px}.movie-reminder p{font-size:18px;line-height:1.5}.movie-reminder small{display:block;color:#d0dcc4;font-size:11px;margin-top:10px}.movie-reminder button{display:block;margin-top:12px;padding:10px 22px!important;background:#f1d68e!important;color:#23372c!important}
+
+.story-talk{margin:12px 20px 22px;padding:20px;background:#142c38;border:1px solid #52736d;border-radius:14px}.story-talk-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.story-talk-head strong{font-size:20px;color:#c9f1d0}.story-talk small{display:block;font-size:12px;color:#b7cfcb;line-height:1.6;margin-top:6px}.story-talk label{display:block;margin:16px 0 8px;color:#def1e6}.story-talk form>div{display:flex;gap:8px}.story-talk input{flex:1;min-width:0;padding:13px;border-radius:8px}.story-talk button{padding:10px 15px}.story-sos{border-color:#efb394!important;color:#ffd8c3!important}.story-sos-offer{margin-top:16px;padding:16px;border:1px solid #d0a886;border-radius:10px;background:#433c33}.story-sos-offer p{font-size:13px;line-height:1.5}.story-sos-offer button{margin:5px}.story-chat{max-height:300px;overflow:auto}.story-chat article{padding:12px;margin-top:12px;background:#24443f;border-radius:10px}.story-chat p{line-height:1.6;font-size:14px}.story-chat summary{font-size:11px;cursor:pointer}.story-continue{margin:15px 0 8px}
+
+/* One consistent top-down stage for the interactive story and walkthrough. */
+@media(min-width:1000px){.movie-pov{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(300px,1fr);align-items:start}.movie-pov>.pov-banner{grid-column:1/-1}.movie-pov>.pov-viewport{grid-column:1;grid-row:2}.movie-pov>.story-talk{grid-column:2;grid-row:2 / span 8;margin:16px;position:sticky;top:16px}.movie-pov>.movie-dialogue,.movie-pov>.movie-reminder,.movie-pov>.movie-choices,.movie-pov>.movie-note,.movie-pov>div:not(.pov-banner):not(.pov-viewport){grid-column:1}.movie-pov .story-chat{max-height:440px}.movie-pov .sim-world{max-height:none}.movie-pov>.movie-dialogue{padding:18px 24px}.movie-pov .movie-dialogue p{font-size:16px}}
+.movie-pov .pov-viewport{background:#dce7cf}.movie-pov .sim-world{display:block;width:100%;height:auto}.movie-pov .scene-speech p{font-size:14px}.movie-pov .story-talk-head strong{font-family:Georgia,serif;font-size:25px}
+
+/* Scene controls stay together; the conversation composer remains above history. */
+.movie-choices .choice-guide{flex-basis:100%;color:#c3dcd3;font-size:12px;line-height:1.5}
+.story-talk{display:flex;flex-direction:column;gap:8px}
+.story-talk-head{order:0}.story-talk form{order:1}.story-sos-offer{order:2}.story-chat{order:3}.story-continue{order:4}.story-talk>small{order:5}
+.story-talk form{padding-bottom:14px;border-bottom:1px solid #41605e}
+.story-chat{min-height:0;overscroll-behavior:contain}
+@media(max-width:999px){.movie-pov{display:flex;flex-direction:column}.movie-pov>.pov-banner{order:0}.movie-pov>.pov-viewport{order:1}.movie-pov>.movie-reminder{order:2}.movie-pov>.movie-dialogue{order:3}.movie-pov>.movie-choices{order:4}.movie-pov>.story-talk{order:5}.movie-pov>.movie-note{order:6}.movie-pov>.story-talk{align-self:stretch}.movie-pov .story-chat{max-height:260px}}
+
+/* Simple story mode: one scene, one reply area, one next step. */
+.arcade-app .movie-pov{display:flex;flex-direction:column;max-width:1050px;margin-inline:auto}
+.movie-pov>.pov-banner{order:0}.movie-pov>.pov-viewport{order:1;width:100%}
+.movie-pov>.movie-dialogue{order:2;width:100%;box-sizing:border-box;border-top:0;padding:12px 24px}
+.movie-pov>.movie-dialogue>p,.movie-pov>.movie-dialogue>small,.movie-pov>.movie-dialogue>.movie-selected{display:none}
+.movie-pov>.movie-dialogue h2{font-size:20px;margin:0}
+.movie-pov>.story-talk{order:4;position:static;width:100%;box-sizing:border-box;margin:0;border:0;border-radius:0;padding:16px 24px 24px;gap:12px}
+.movie-pov>.movie-reminder{order:3}.movie-pov>.movie-note{order:6}
+.movie-pov .story-talk-head strong{font:600 18px system-ui}
+.movie-pov .story-talk .movie-choices{order:1;padding:0!important}
+.movie-pov .story-talk form{order:2;margin:0;padding:0;border:0}
+.movie-pov .story-talk .story-chat{order:3;max-height:none}
+.movie-pov .story-history{order:5;font-size:13px;color:#bed2ca}
+.movie-pov .story-history p{padding:10px;line-height:1.6}
+.movie-pov .story-continue{order:6;align-self:flex-start;margin:0;background:transparent;border:0;text-decoration:underline}
+.movie-pov .story-talk>small{order:7}
+.movie-pov .story-chat article{margin:0;padding:14px 18px}
+.movie-pov .story-talk form>div{max-width:none}
+.movie-pov .story-talk input{font-size:16px}
+.movie-pov .story-talk label{margin:0 0 8px;font-size:14px}
+.movie-pov .story-sos-offer{order:0}
+.movie-pov .choice-guide{display:none}
+.story-progress{margin:10px 0;color:#bad1c9;font-size:12px}.story-progress summary{cursor:pointer;padding:8px}
+.movie-pov .sim-world{max-height:460px;width:100%;object-fit:contain}
+
+.movie-pov>.story-scene-nav{order:0;width:100%;box-sizing:border-box;display:flex;align-items:center;gap:16px;padding:12px 24px;background:#17333d}
+.story-scene-nav span{font-size:13px;color:#bed6cb}.story-scene-nav button{font-weight:600}
+.movie-pov>.story-scene-menu{order:0;width:100%;box-sizing:border-box;padding:16px 24px;background:#17333d}
+.story-scene-menu>div{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin:12px 0}
+.story-scene-menu button{text-align:left;padding:12px;display:flex;flex-direction:column;gap:6px}
+.story-scene-menu button[aria-current=step]{border-color:#b9eea0;background:#285247}
+.story-scene-menu small,.story-scene-menu p{color:#c3d8ce;font-size:12px;line-height:1.6}
+
+/* Prominent first-visit instructions. */
+.arcade-app .judge-help{border:2px solid #b9ed9c;background:#203e3d;border-radius:14px;margin:16px 0 22px;box-shadow:0 0 0 4px #b9ed9c10}
+.arcade-app .judge-help>summary{padding:18px 20px;color:#f1ffe9;font-size:17px;font-weight:700;cursor:pointer;line-height:1.5}
+.help-start-badge{display:inline-block;margin-right:10px;padding:5px 10px;border-radius:6px;background:#c1f29b;color:#18392e;font-size:12px;letter-spacing:1px}
+.arcade-app .judge-help .judge-guide-grid{padding:8px 20px 22px;gap:24px}
+.arcade-app .judge-help h3{color:#d5ffb5;font-size:18px}
+.arcade-app .judge-help p,.arcade-app .judge-help li{color:#edf5ed;font-size:15px;line-height:1.75}
+.arcade-app .judge-help strong{color:#e4ffc8}

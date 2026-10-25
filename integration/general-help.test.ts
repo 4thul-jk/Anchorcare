@@ -36,9 +36,9 @@ test('spoken origin plus need-to-reach destination is used instead of asking aga
 });
 
 
-test('web follow-up passes bounded public context and Muse style without rotating unsupported facts',async()=>{
+test('web follow-up passes bounded public context and Jhonny style without rotating unsupported facts',async()=>{
  let sent:any;const helper=new GeneralHelp(async()=>({interactions:{create:async(p:any)=>{sent=p;return {output_text:'A new relevant detail.',steps:[{annotations:[{type:'url_citation',url:'https://example.org/detail'}]}]};}}})as any);
- await helper.answer('tell me more','general',undefined,[{question:'What is photosynthesis?',answer:'Plants use light.'}]);const payload=JSON.parse(sent.input);assert.equal(payload.currentQuestion,'tell me more');assert.equal(payload.previousPublicConversation[0].question,'What is photosynthesis?');assert.match(sent.system_instruction,/Muse/);assert.match(sent.system_instruction,/do not invent a different fact/);
+ await helper.answer('tell me more','general',undefined,[{question:'What is photosynthesis?',answer:'Plants use light.'}]);const payload=JSON.parse(sent.input);assert.equal(payload.currentQuestion,'tell me more');assert.equal(payload.previousPublicConversation[0].question,'What is photosynthesis?');assert.match(sent.system_instruction,/Jhonny/);assert.match(sent.system_instruction,/do not invent a different fact/);
 });
 test('consented GPS supplies Maps origin but only an explicitly supplied town reaches search',async()=>{
  let sent:any;const helper=new GeneralHelp(async()=>({interactions:{create:async(p:any)=>{sent=p;return {output_text:'A local forecast.',steps:[{annotations:[{type:'url_citation',url:'https://example.org/weather'}]}]};}}})as any);

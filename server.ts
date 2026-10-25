@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { mountEngram } from './integration/engram';
+import { mountSimulation } from './integration/simulation';
 
 dotenv.config();
 
@@ -22,8 +23,11 @@ async function startServer() {
     if(error instanceof SyntaxError)return void res.status(400).json({error:'Invalid JSON request'});
     next(error);
   });
-  const engram = await mountEngram(app);
+  const publicSimulation = process.env.PUBLIC_SIMULATION === 'true';
+  const engram = publicSimulation ? {close:async()=>{}} : await mountEngram(app);
+  const simulation = await mountSimulation(app);
   app.get('/healthz',(_req,res)=>res.json({status:'ok'}));
+  if(publicSimulation){app.get('/',(_req,res)=>res.redirect('/simulation'));app.use('/api',(_req,res)=>res.status(404).json({error:'Only the simulation is available on this site.'}));}
 
   app.post('/api/gemini/reason', (_req, res) => {
     res.status(410).json({ error: 'Legacy client-context reasoning is disabled. Use the authenticated /api/engram/ask route.' });
@@ -46,7 +50,7 @@ async function startServer() {
   const server = app.listen(PORT, process.env.HOST || '127.0.0.1', () => {
     console.log(`AnchorCare server listening on http://localhost:${PORT}`);
   });
-  const stop = () => server.close(() => { void engram.close().finally(() => process.exit(0)); });
+  const stop = () => server.close(() => { void Promise.allSettled([engram.close(),simulation.close()]).finally(() => process.exit(0)); });
   process.once('SIGINT', stop); process.once('SIGTERM', stop);
 }
 

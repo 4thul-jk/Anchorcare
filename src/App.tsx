@@ -252,7 +252,7 @@ export default function App() {
           }}
           className="text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 font-display"
         >
-          AnchorCare
+          Engram
         </a>
 
         {/* Zone 2: 4 concise single-line text navigation links */}
@@ -260,6 +260,7 @@ export default function App() {
           aria-label="Primary Workspace Views"
           className="flex items-center gap-6 text-sm font-medium text-slate-600 overflow-x-auto"
         >
+          <a href="/simulation" className="py-1 whitespace-nowrap text-emerald-800 font-semibold">2D judge demo</a>
           <a
             href="#companion"
             onClick={(e) => {
@@ -441,7 +442,7 @@ export default function App() {
       <footer className="border-t border-slate-200 bg-white px-6 py-4 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>
-            AnchorCare — Hybrid Evidence-Grounded Memory Assistant & Policy Engine Prototype
+            Engram — Hybrid Evidence-Grounded Memory Assistant & Policy Engine Prototype
           </span>
           <span>
             Synthetic Data Only · Original Browser Demo + Server Memory Workspace
