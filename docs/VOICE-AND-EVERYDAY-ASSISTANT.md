@@ -17,3 +17,5 @@ Muse can answer exact current-time/date requests from the server clock in the co
 ## Verification
 
 Regression tests cover pauses, noise-only input, manual send mode, session-scoped location, stale GPS, explicit origin precedence, and exclusion of precise coordinates from search inputs. Browser permission and actual microphone/speaker behaviour require a physical-device check. Existing fictional judge invitations and public-showcase restrictions remain in place.
+
+Deployed source 8efd4a6 to Render deployment dep-dbekjlcs728c73ci3290 on 25 October 2026. Full suite: 175 passed; type check and production build passed. Live authenticated checks returned `device_clock` for the time, a Maps route with the explicit Guildford origin/destination, and a London weather web response with a provider citation. Browser showed the three voice stages, public search-area input and all three speech-ending settings. No actual microphone, camera or GPS was activated during these checks.
