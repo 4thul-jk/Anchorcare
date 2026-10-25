@@ -1,4 +1,16 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {createSpeechInput} from './speechInput';
+import {VoiceTurnDetector} from './voiceTurn';
+test('voice turn tolerates natural pauses, rejects background noise and supports manual sending',()=>{
+ const detector=new VoiceTurnDetector(2400);
+ for(let n=100;n<=1000;n+=100)assert.equal(detector.sample(.004,n).heard,false);
+ assert.equal(detector.sample(.04,1100).heard,false);
+ detector.sample(.04,1200);assert.equal(detector.sample(.04,1300).heard,true);
+ assert.equal(detector.sample(.004,2700).finish,false);
+ assert.equal(detector.sample(.04,2800).finish,false);
+ assert.equal(detector.sample(.004,5100).finish,false);
+ assert.equal(detector.sample(.004,5200).finish,true);
+ const manual=new VoiceTurnDetector(0);for(let n=100;n<=500;n+=100)manual.sample(.04,n);assert.equal(manual.sample(.002,20000).finish,false);
+});
 test('microphone fills review text, stops, and ignores late events after disposal',()=>{
  let instance:any,transcript='',ended=false,error='';
  class Recognition {onresult:any;onend:any;onerror:any;stopped=false;aborted=false;constructor(){instance=this;}start(){}stop(){this.stopped=true;}abort(){this.aborted=true;}}

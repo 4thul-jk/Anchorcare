@@ -116,6 +116,14 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
   };
   const answerJobs = new AnswerJobs();
   const limits = new RequestLimits();
+  async function answerGeneral(general:any,input:any,signal?:AbortSignal){
+    if(/^(?:please[, ]+)?(?:what time is it|what (?:day|date) is (?:it|today))[?!. ]*$/i.test(general.question.trim())){
+      const now=service.clock(),clock=/time/i.test(general.question),value=new Intl.DateTimeFormat('en-GB',{timeZone:cfg.timezone,...(clock?{hour:'numeric',minute:'2-digit',timeZoneName:'short'}:{weekday:'long',day:'numeric',month:'long',year:'numeric'})}).format(now);
+      return {status:'general_help',responseSource:'device_clock',answer:clock?`It is ${value}.`:`Today is ${value}.`,sources:[],conversational:true};
+    }
+    const device=!input.public_demo&&general.sessionId?await deviceLocation.latest(patient,general.sessionId):undefined;
+    return generalHelp.answer(general.question,general.kind,signal,general.publicHistory,device||undefined);
+  }
   async function answerQuestion(input:any,path:string,admin:boolean,signal?:AbortSignal,onProgress?:(phase:string)=>void,onContext?:(input:any)=>void,onRouting?:(source:string)=>void,onInterim?:(result:any)=>void){
         if(path==='/ask'){
           const decision=await agent.contactDecision(patient,input.agent_turn_id);
@@ -136,7 +144,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
         if(path==='/ask'){
           if(/^(?:who is (?:this|that|in (?:this|that) (?:picture|photo)))[?!. ]*$/i.test(input.question||''))return input.image_id?await imageMemory.identifySaved(patient,String(input.image_id)):{status:'support',answer:'Which saved picture do you mean? Tap Who is this? below the picture, and I can explain their name and relationship to you.',conversational:true};
           const care=await agent.careReply(patient,input.agent_turn_id);if(care)return care;
-          const followup=await agent.generalRequest(patient,input.agent_turn_id,input.question);if(followup?.weatherFollowup){onProgress?.('searching_web');return generalHelp.answer(followup.question,followup.kind,signal,followup.publicHistory);}
+          const followup=await agent.generalRequest(patient,input.agent_turn_id,input.question);if(followup?.weatherFollowup){onProgress?.('searching_web');return answerGeneral(followup,input,signal);}
           const contextual=await agent.contextualReply(patient,input.agent_turn_id);if(contextual)return contextual;
           const location=await agent.locationReply(patient,input.question,input.agent_turn_id);if(location)return location;
         }
@@ -164,7 +172,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
         }
         const namedPerson=path==='/ask'?namedPersonQuestion(input.question):null;
         if(namedPerson){const request={patient_id:patient,query:input.question,include:['personal_records'],limit:50};onContext?.(request);const identity=namedPersonAnswer(await context.retrieve(request),namedPerson);if(identity)return identity;}
-        if(path==='/ask'){const general=await agent.generalRequest(patient,input.agent_turn_id,input.question);if(general){onProgress?.('searching_web');return generalHelp.answer(general.question,general.kind,signal,general.publicHistory);}}
+        if(path==='/ask'){const general=await agent.generalRequest(patient,input.agent_turn_id,input.question);if(general){onProgress?.('searching_web');return answerGeneral(general,input,signal);}}
         const quickRequest=path==='/ask'?quickVisitRequest(input.question,cfg.timezone,service.clock()):null;
         let selected: any=quickRequest?{request:quickRequest,routing:{source:'approved_schedule_shortcut',tool:'retrieve_memory',sections:quickRequest.include}}:undefined;
         // Read approved context directly. Let the answer model interpret phrasing;
@@ -292,7 +300,7 @@ export async function mountEngram(app: Express,options:{classifyTurn?:typeof cla
       }
       if(req.method==='GET'&&req.path==='/admin/team-agents'){if(!admin)return void res.status(403).json({error:'Caregiver access required'});return void res.json({telegram:telegramAgent.status(),summary:await new CaregiverAgent(service).report(patient,input.kind==='alerts'?'alerts':'summary')});}
       if(req.method==='POST'&&req.path==='/location'){limits.take('location:'+credentialBucket(key),12);return void res.json(await deviceLocation.save(patient,input));}
-      if(req.method==='GET'&&req.path==='/location')return void res.json({location:await deviceLocation.latest(patient)});
+      if(req.method==='GET'&&req.path==='/location')return void res.json({location:await deviceLocation.latest(patient,typeof input.session_id==='string'?input.session_id:undefined)});
       if(req.method==='POST'&&req.path==='/identify-image'){limits.take('identify-image:'+credentialBucket(key),30);return void res.json(await imageMemory.identifySaved(patient,String(input.image_id||'')));}
       if(req.method==='GET'&&req.path==='/admin/storage'){if(!admin)return void res.status(403).json({error:'Caregiver access required'});return void res.json({collections:store.mode==='mongodb'?await describeStorage((store as any).db):[]});}
       if(req.method==='GET'&&req.path==='/admin/agent/session-reports'){if(!admin)return void res.status(403).json({error:'Caregiver access required'});return void res.json({reports:await store.list('agent_session_reports',service.scope(patient),{createdAt:-1},20)});}

@@ -30,3 +30,12 @@ test('web follow-up passes bounded public context and Muse style without rotatin
  let sent:any;const helper=new GeneralHelp(async()=>({interactions:{create:async(p:any)=>{sent=p;return {output_text:'A new relevant detail.',steps:[{annotations:[{type:'url_citation',url:'https://example.org/detail'}]}]};}}})as any);
  await helper.answer('tell me more','general',undefined,[{question:'What is photosynthesis?',answer:'Plants use light.'}]);const payload=JSON.parse(sent.input);assert.equal(payload.currentQuestion,'tell me more');assert.equal(payload.previousPublicConversation[0].question,'What is photosynthesis?');assert.match(sent.system_instruction,/Muse/);assert.match(sent.system_instruction,/do not invent a different fact/);
 });
+test('consented GPS supplies Maps origin but only an explicitly supplied town reaches search',async()=>{
+ let sent:any;const helper=new GeneralHelp(async()=>({interactions:{create:async(p:any)=>{sent=p;return {output_text:'A local forecast.',steps:[{annotations:[{type:'url_citation',url:'https://example.org/weather'}]}]};}}})as any);
+ const device={fresh:true,latitude:51.234567,longitude:-.543219,publicArea:'Guildford'};
+ const route=await helper.answer('Directions to Guildford castle','directions',undefined,[],device);
+ assert.match(route.mapUrl!,/origin=51.234567%2C-0.543219/);assert.match(route.answer,/device location/);
+ await helper.answer('weather near me','general',undefined,[],device);assert.match(sent.input,/Guildford/);assert.doesNotMatch(sent.input,/51\.234567|-0\.543219/);
+ const missing=await helper.answer('weather near me','general',undefined,[],{...device,publicArea:null});assert.equal(missing.responseSource,'location_needed');
+ const stale=await helper.answer('Directions to Guildford castle','directions',undefined,[],{...device,fresh:false});assert.doesNotMatch(stale.mapUrl!,/origin=/);
+});

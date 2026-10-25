@@ -207,7 +207,7 @@ export class ConversationAgent{
   const place=currentLocationReport(question),lastPublic=publicHistory.at(-1);let weatherFollowup=false;
   if(place&&lastPublic&&/\b(weather|forecast|temperature)\b/i.test(lastPublic.question)){question='What is the weather in '+place+' today?';weatherFollowup=true;}
   const followup=/^(?:please )?(?:tell me more|what else|anything else|another (?:one|example)|explain that (?:again|simply)|say that (?:again|differently)|a different (?:answer|example))[.!? ]*$/i.test(question.trim());
-  const kind=followup&&publicHistory.length?'general':generalHelpKind(question,turn?.helpRoute);return kind?{question,kind,publicHistory,weatherFollowup}:null;
+  const kind=followup&&publicHistory.length?'general':generalHelpKind(question,turn?.helpRoute);return kind?{question,kind,publicHistory,weatherFollowup,sessionId:turn?.sessionId}:null;
  }
  async contextualReply(patient:string,turnId:unknown){
   if(typeof turnId!=='string')return null;const turn=await this.service.store.one('agent_capture_turns',{...this.scope(patient),_id:turnId});
@@ -225,7 +225,8 @@ export class ConversationAgent{
  async locationReply(patient:string,query:string,turnId:unknown){
   if(!isLocationRecall(query))return null;
   const scope=this.scope(patient),day=explicitQuestionDay(query,this.service.cfg.timezone,this.service.clock());
-  const gps=!day?await new DeviceLocation(this.service).latest(patient):null;
+  const currentTurn=typeof turnId==='string'?await this.service.store.one('agent_capture_turns',{...scope,_id:turnId}):null;
+  const gps=!day&&currentTurn?await new DeviceLocation(this.service).latest(patient,currentTurn.sessionId):null;
   const bounds=day?dayBounds(day,this.service.cfg.timezone):null;
   const report=(await this.service.store.list('agent_location_reports',{...scope,...(bounds?{reportedAt:{$gte:bounds.start,$lt:bounds.end}}:{})},{reportedAt:-1},1))[0]||null;
   const turn=typeof turnId==='string'?await this.service.store.one('agent_capture_turns',{...scope,_id:turnId}):null;
